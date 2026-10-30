@@ -1,0 +1,163 @@
+.dash-home__welcome {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1.75rem;
+	padding: 1.5rem 1.75rem;
+	border-radius: 16px;
+	background: linear-gradient(125deg, #0f172a 0%, #1e3a5f 55%, #1977cc 100%);
+	color: #fff;
+	box-shadow: 0 16px 40px -12px rgba(15, 23, 42, 0.45);
+}
+
+.dash-home__welcome--doctor {
+	background: linear-gradient(125deg, #1a2744 0%, #243b55 50%, #667eea 100%);
+}
+
+.dashboard-app--doctor .dash-home__welcome--doctor {
+	background: linear-gradient(125deg, #123f67 0%, #155e9b 50%, #1977cc 100%);
+	box-shadow: 0 16px 40px -12px rgba(21, 94, 155, 0.4);
+}
+
+.dash-home__welcome-title {
+	font-size: 1.5rem;
+	font-weight: 700;
+	margin: 0 0 0.35rem;
+	letter-spacing: -0.02em;
+	color: #fff;
+}
+
+.dash-home__welcome-text {
+	margin: 0;
+	opacity: 0.88;
+	font-size: 0.95rem;
+	max-width: 36rem;
+}
+
+.dash-home__welcome-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.dash-home__pill,
+.doctor-app-theme .dash-home__pill,
+.patient-app-theme .dash-home__pill,
+.dashboard-app .dash-home__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.55rem 1.15rem;
+	border-radius: 999px;
+	background: #ffffff !important;
+	color: #0f2d4a !important;
+	font-size: 0.9rem;
+	font-weight: 700;
+	text-decoration: none;
+	border: 1px solid rgba(255, 255, 255, 0.9) !important;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+	transition: all 0.2s ease;
+}
+
+.dash-home__pill svg,
+.doctor-app-theme .dash-home__pill svg,
+.dashboard-app .dash-home__pill svg {
+	color: #1977cc !important;
+	font-size: 1.05rem;
+}
+
+.patient-app-theme .dash-home__pill svg {
+	color: #059669 !important;
+	font-size: 1.05rem;
+}
+
+.dash-home__pill:hover,
+.doctor-app-theme .dash-home__pill:hover,
+.dashboard-app .dash-home__pill:hover {
+	color: #ffffff !important;
+	background: #1977cc !important;
+	border-color: #ffffff !important;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+	transform: translateY(-2px);
+}
+
+.dash-home__pill:hover svg,
+.doctor-app-theme .dash-home__pill:hover svg,
+.dashboard-app .dash-home__pill:hover svg {
+	color: #ffffff !important;
+}
+
+.dash-home__quick-card {
+	display: flex;
+	align-items: center;
+	gap: 0.85rem;
+	padding: 1rem 1.25rem;
+	height: 100%;
+	border-radius: 14px;
+	background: #fff;
+	border: 1px solid #e9ecef;
+	text-decoration: none;
+	color: inherit;
+	box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+	transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.dash-home__quick-card:hover {
+	border-color: rgba(25, 119, 204, 0.35);
+	box-shadow: 0 8px 24px rgba(25, 119, 204, 0.12);
+	transform: translateY(-2px);
+	color: inherit;
+}
+
+.dash-home__quick-icon {
+	font-size: 1.35rem;
+	color: #1977cc;
+	flex-shrink: 0;
+}
+
+.dash-home__quick-arrow {
+	margin-left: auto;
+	color: #94a3b8;
+	font-size: 0.85rem;
+}
+
+.dash-home__fav-card {
+	border-radius: 14px !important;
+	border: 1px solid #eef2f6 !important;
+}
+
+.dash-home__treatment {
+	border-radius: 14px !important;
+	background: linear-gradient(180deg, #f8fafc 0%, #fff 100%) !important;
+	border: 1px solid #e9ecef !important;
+}
+
+.dashboard-app--patient .dash-home__welcome {
+	background: linear-gradient(125deg, #064e3b 0%, #047857 52%, #10a878 100%);
+	box-shadow: 0 16px 40px -12px rgba(6, 95, 70, 0.35);
+}
+
+.dashboard-app--patient .dash-home__quick-card {
+	border-color: #d1fae5;
+	box-shadow: 0 2px 10px rgba(6, 95, 70, 0.05);
+}
+
+.dashboard-app--patient .dash-home__quick-card:hover {
+	border-color: rgba(5, 150, 105, 0.4);
+	box-shadow: 0 8px 24px rgba(6, 95, 70, 0.12);
+}
+
+.dashboard-app--patient .dash-home__quick-icon {
+	color: #059669;
+}
+
+.dashboard-app--patient .dash-home__fav-card {
+	border-color: #d1fae5 !important;
+}
+
+.dashboard-app--patient .dash-home__treatment {
+	background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%) !important;
+	border-color: #d1fae5 !important;
+}

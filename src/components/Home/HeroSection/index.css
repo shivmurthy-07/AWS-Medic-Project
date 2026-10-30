@@ -1,0 +1,123 @@
+#hero {
+    width: 100%;
+    height: 90vh;
+    background-image: linear-gradient(135deg, #e8f4ff, #ffffff);
+    background-size: cover;
+    margin-bottom: -115px;
+    margin-top: 80px;
+  }
+  
+  #hero .container {
+    position: relative;
+  }
+
+  .patient-app-theme #hero.hero--patient {
+    background-image:
+      linear-gradient(90deg, rgba(240, 253, 248, 0.94) 0%, rgba(240, 253, 248, 0.76) 44%, rgba(255, 255, 255, 0.24) 100%),
+      url('../../../images/patient-hero-background.jpg');
+    background-position: center;
+    background-size: cover;
+  }
+
+  .doctor-app-theme #hero.hero--doctor {
+    background-image:
+      linear-gradient(90deg, rgba(7, 28, 54, 0.84) 0%, rgba(7, 28, 54, 0.68) 52%, rgba(7, 28, 54, 0.28) 100%),
+      url('../../../images/doctor-hero-background.jpg');
+    background-position: center;
+    background-size: cover;
+  }
+
+  .doctor-app-theme #hero.hero--doctor h1,
+  .doctor-app-theme #hero.hero--doctor h2,
+  .doctor-app-theme #hero.hero--doctor small {
+    color: #fff;
+  }
+
+  .doctor-app-theme #hero.hero--doctor .btn-get-started {
+    background: #1977cc;
+  }
+
+  .doctor-app-theme #hero.hero--doctor .btn-get-started:hover {
+    background: #1565a0;
+  }
+
+  #hero .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 30px;
+  }
+  
+  #hero h1 {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 56px;
+    text-transform: uppercase;
+    color: #2c4964;
+  }
+  
+  #hero h2 {
+    color: #2c4964;
+    margin: 10px 0 0 0;
+    font-size: 24px;
+  }
+  
+  #hero .btn-get-started {
+    font-family: "Raleway", sans-serif;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 1px;
+    display: inline-block;
+    padding: 12px 35px;
+    margin-top: 0;
+    border-radius: 50px;
+    transition: 0.5s;
+    color: #fff;
+    background: #1977cc;
+    white-space: nowrap;
+  }
+  
+  #hero .btn-get-started:hover {
+    background: #3291e6;
+  }
+  
+  @media (min-width: 1024px) {
+    #hero {
+      background-attachment: fixed;
+    }
+  }
+  
+  @media (max-width: 992px) {
+    #hero {
+      margin-bottom: 0;
+      height: 100vh;
+    }
+  
+    #hero .container {
+      padding-bottom: 63px;
+    }
+  
+    #hero h1 {
+      font-size: 28px;
+      line-height: 36px;
+    }
+  
+    #hero h2 {
+      font-size: 18px;
+      line-height: 24px;
+      margin-bottom: 30px;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    #hero {
+      height: 60vh;
+    }
+    #hero .btn-get-started {
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+  }

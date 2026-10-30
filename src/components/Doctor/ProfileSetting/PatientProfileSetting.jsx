@@ -1,0 +1,196 @@
+import React, { useEffect, useRef, useState } from 'react'
+import moment from 'moment';
+import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
+import { bloodGrupOptions } from '../../../constant/global';
+import { useUpdatePatientMutation } from '../../../redux/api/patientApi';
+import useAuthCheck from '../../../redux/hooks/useAuthCheck';
+import { message } from 'antd';
+import ImageUpload from '../../UI/form/ImageUpload';
+import pImage from '../../../images/avatar.jpg';
+import { DatePicker } from 'antd';
+
+const PatientProfileSetting = () => {
+    const { data } = useAuthCheck();
+    const { register, handleSubmit, formState: { errors } } = useForm({ mode: 'onBlur' });
+    const [userId, setUserId] = useState('');
+    const [selectBloodGroup, setSelectBloodGroup] = useState('');
+    const [selectValue, setSelectValue] = useState({})
+    const [updatePatient, { isSuccess, isError, error, isLoading }] = useUpdatePatientMutation();
+    const [date, setDate] = useState(null);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [file, setFile] = useState(null);
+
+    const onChange = (_date, dateString) => {
+        setDate(dateString ? moment(dateString, 'YYYY-MM-DD', true).format() : null);
+    };
+
+    useEffect(() => {
+        if (data) {
+            setUserId(data.id)
+            setSelectBloodGroup(data?.bloodGroup)
+        }
+    }, [data]);
+
+    useEffect(() => {
+        if (!isLoading && isError) {
+            message.error(error?.data?.message)
+        }
+        if (isSuccess) {
+            message.success('Successfully Profile Updated')
+        }
+    }, [isLoading, isError, error, isSuccess])
+
+    const handleChange = (e) => {
+        setSelectValue({ ...selectValue, [e.target.name]: e.target.value })
+        if (e.target.name === 'bloodGroup') {
+            setSelectBloodGroup(e.target.value);
+        }
+    }
+
+    const onSubmit = (data) => {
+        const obj = data;
+        const newObj = { ...obj, ...selectValue };
+        date && (newObj['dateOfBirth'] = date);
+        const changedValue = Object.fromEntries(Object.entries(newObj).filter(([key, value]) => value !== ''));
+        const formData = new FormData();
+        selectedImage && formData.append('file', file);
+        const changeData = JSON.stringify(changedValue);
+        formData.append('data', changeData)
+        updatePatient({ data: formData, id: userId })
+    };
+
+    return (
+        <div style={{ marginBottom: '10rem' }}>
+            <div className="w-100 mb-3 rounded mb-5 p-2" style={{ background: '#f8f9fa' }}>
+                <h5 className="text-title mb-2 mt-3">Update Your Information</h5>
+                <form className="row form-row" onSubmit={handleSubmit(onSubmit)}>
+                    <div className="col-md-12">
+                        <div className="form-group">
+                            <div className='change-avatar d-flex gap-2 align-items-center'>
+                                <Link to={'/'} className="my-3 patient-img">
+                                    <img src={selectedImage ? selectedImage : data?.img || pImage} alt="" />
+                                </Link>
+                                <div className="mt-3">
+                                    <ImageUpload setSelectedImage={setSelectedImage} setFile={setFile}/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>First Name <span className="text-danger">*</span></label>
+                            <input defaultValue={data?.firstName} maxLength={80} {...register("firstName", {
+                                validate: (value) => !value?.trim() || /^[\p{L}\p{M}]+(?:[ '-][\p{L}\p{M}]+)*$/u.test(value.trim()) || 'Enter a valid name.',
+                            })} className="form-control" aria-invalid={Boolean(errors.firstName)} />
+                            {errors.firstName && <small role="alert" className="text-danger">{errors.firstName.message}</small>}
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>Last Name <span className="text-danger">*</span></label>
+                            <input defaultValue={data?.lastName} maxLength={80} {...register("lastName", {
+                                validate: (value) => !value?.trim() || /^[\p{L}\p{M}]+(?:[ '-][\p{L}\p{M}]+)*$/u.test(value.trim()) || 'Enter a valid name.',
+                            })} className="form-control" aria-invalid={Boolean(errors.lastName)} />
+                            {errors.lastName && <small role="alert" className="text-danger">{errors.lastName.message}</small>}
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>Email <span className="text-danger">*</span></label>
+                            <input defaultValue={data?.email} disabled className="form-control" />
+                        </div>
+                    </div>
+
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>Date of Birth {moment(data?.dateOfBirth).format('LL')}</label>
+                                    <DatePicker
+                                        onChange={onChange}
+                                        format={"YYYY-MM-DD"}
+                                        disabledDate={(current) => current && current.isAfter(moment().endOf('day'))}
+                                        style={{ width: '100%', padding: '6px' }}
+                                    />
+                        </div>
+                    </div>
+
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>Phone Number</label>
+                            <input defaultValue={data?.mobile} maxLength={20} {...register("mobile", {
+                                validate: (value) => !value?.trim() || /^\+?[1-9][0-9\s()-]{6,18}$/.test(value.trim()) || 'Enter a valid phone number.',
+                            })} className="form-control" aria-invalid={Boolean(errors.mobile)} />
+                            {errors.mobile && <small role="alert" className="text-danger">{errors.mobile.message}</small>}
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="form-group mb-2">
+                            <label>Gender</label>
+                            <select className="form-control select" onChange={handleChange} name='gender'>
+                                <option value={''}>Select</option>
+                                <option className='text-capitalize'>male</option>
+                                <option className='text-capitalize'>female</option>
+                                <option value='other' className='text-capitalize'>other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="col-md-6">
+                        <div className="form-group mb-2">
+                            <label className='form-label'>Blood Group</label>
+                            <select className="form-control select"
+                                onChange={handleChange}
+                                name='bloodGroup'
+                                value={selectBloodGroup}
+                            >
+                                {
+                                    bloodGrupOptions.map((option, index) => (
+                                        <option key={index} value={option.value} className='text-capitalize'>{option.label}</option>
+                                    ))
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="col-md-6">
+                        <div className="form-group mb-2">
+                            <label className='form-label'>City</label>
+                            <input defaultValue={data?.city} maxLength={100} {...register("city")} className="form-control" />
+                        </div>
+                    </div>
+
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>State</label>
+                            <input defaultValue={data?.state} maxLength={100} {...register("state")} className="form-control" />
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>Zip Code</label>
+                            <input defaultValue={data?.zipCode} maxLength={20} {...register("zipCode")} className="form-control" />
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>Country</label>
+                            <input defaultValue={data?.country} maxLength={100} {...register("country")} className="form-control" />
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="form-group mb-2 card-label">
+                            <label>Address</label>
+                            <input defaultValue={data?.address} maxLength={500} {...register("address")} className="form-control" />
+                        </div>
+                    </div>
+                    <div className='text-center'>
+                        <button type="submit" className="btn btn-primary my-3" disabled={isLoading ? true : false}>{isLoading ? 'Updating..' : 'Save Changes'}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )
+}
+
+export default PatientProfileSetting

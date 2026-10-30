@@ -1,0 +1,500 @@
+/* MediBot Floating Healthcare Assistant Styles */
+
+.medibot-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd 0%, #055160 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.35);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.medibot-fab:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 12px 30px rgba(13, 110, 253, 0.45);
+}
+
+.medibot-fab__badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    background-color: #20c997;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    animation: medibot-pulse 2s infinite;
+}
+
+@keyframes medibot-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(32, 201, 151, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(32, 201, 151, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(32, 201, 151, 0);
+    }
+}
+
+/* Chat Window */
+.medibot-window {
+    position: fixed;
+    bottom: 96px;
+    right: 24px;
+    width: 390px;
+    max-width: calc(100vw - 32px);
+    height: 560px;
+    max-height: calc(100vh - 120px);
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: medibot-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+}
+
+@keyframes medibot-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Header */
+.medibot-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    color: #ffffff;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.medibot-header__info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.medibot-header__avatar {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    backdrop-filter: blur(4px);
+}
+
+.medibot-header__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #ffffff;
+}
+
+.medibot-header__status {
+    margin: 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.medibot-header__status-dot {
+    width: 8px;
+    height: 8px;
+    background: #20c997;
+    border-radius: 50%;
+}
+
+.medibot-header__actions {
+    display: flex;
+    gap: 6px;
+}
+
+.medibot-header__btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #ffffff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.medibot-header__btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Chat Body */
+.medibot-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Messages */
+.medibot-msg {
+    display: flex;
+    gap: 10px;
+    max-width: 88%;
+}
+
+.medibot-msg--user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.medibot-msg--bot {
+    align-self: flex-start;
+}
+
+.medibot-msg__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0d6efd;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.medibot-msg--user .medibot-msg__avatar {
+    background: #6c757d;
+}
+
+.medibot-msg__bubble {
+    background: #ffffff;
+    padding: 12px 14px;
+    border-radius: 14px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: #212529;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    word-break: break-word;
+}
+
+.medibot-msg--user .medibot-msg__bubble {
+    background: #0d6efd;
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+}
+
+.medibot-msg--bot .medibot-msg__bubble {
+    border-bottom-left-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.medibot-msg__time {
+    font-size: 10.5px;
+    color: #adb5bd;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.medibot-msg--user .medibot-msg__time {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* Emergency Alert */
+.medibot-emergency {
+    background: #fff5f5;
+    border: 1px solid #feb2b2;
+    border-left: 4px solid #e53e3e;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 8px;
+    color: #9b2c2c;
+    font-size: 13px;
+}
+
+/* Doctor Card Inside Bot */
+.medibot-doc-card {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.medibot-doc-card__img {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.medibot-doc-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.medibot-doc-card__name {
+    font-weight: 600;
+    font-size: 13px;
+    margin: 0;
+    color: #0d6efd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.medibot-doc-card__spec {
+    font-size: 11.5px;
+    color: #6c757d;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.medibot-doc-card__clinic {
+    font-size: 11px;
+    color: #495057;
+    margin: 2px 0 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.medibot-doc-card__fee {
+    font-size: 12px;
+    font-weight: 700;
+    color: #198754;
+}
+
+.medibot-doc-card__btn {
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: none;
+    background: #0d6efd;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.medibot-doc-card__btn:hover {
+    background: #0b5ed7;
+}
+
+/* Action Buttons */
+.medibot-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.medibot-action-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+}
+
+.medibot-action-btn--primary {
+    background: #0d6efd;
+    color: #ffffff;
+}
+
+.medibot-action-btn--primary:hover {
+    background: #0b5ed7;
+    color: #ffffff;
+}
+
+.medibot-action-btn--secondary {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.medibot-action-btn--secondary:hover {
+    background: #dee2e6;
+    color: #212529;
+}
+
+.medibot-action-btn--danger {
+    background: #dc3545;
+    color: #ffffff;
+}
+
+.medibot-action-btn--danger:hover {
+    background: #bb2d3b;
+    color: #ffffff;
+}
+
+/* Quick Replies */
+.medibot-quick-replies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border-top: 1px solid #f1f3f5;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.medibot-chip {
+    background: #f0f7ff;
+    color: #0d6efd;
+    border: 1px solid #cfe2ff;
+    border-radius: 16px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.medibot-chip:hover {
+    background: #0d6efd;
+    color: #ffffff;
+    border-color: #0d6efd;
+}
+
+/* Input Area */
+.medibot-footer {
+    background: #ffffff;
+    border-top: 1px solid #e9ecef;
+    padding: 10px 14px;
+}
+
+.medibot-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.medibot-input {
+    flex: 1;
+    border: 1px solid #ced4da;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.medibot-input:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+.medibot-send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #0d6efd;
+    color: #ffffff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.medibot-send-btn:hover:not(:disabled) {
+    background: #0b5ed7;
+}
+
+.medibot-send-btn:disabled {
+    background: #ced4da;
+    cursor: not-allowed;
+}
+
+.medibot-disclaimer {
+    font-size: 10px;
+    color: #adb5bd;
+    text-align: center;
+    margin: 6px 0 0 0;
+}
+
+/* Typing Indicator */
+.medibot-typing {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+}
+
+.medibot-typing__dot {
+    width: 6px;
+    height: 6px;
+    background: #0d6efd;
+    border-radius: 50%;
+    animation: medibot-blink 1.4s infinite both;
+}
+
+.medibot-typing__dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.medibot-typing__dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes medibot-blink {
+    0%, 80%, 100% {
+        opacity: 0.2;
+        transform: scale(0.8);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+

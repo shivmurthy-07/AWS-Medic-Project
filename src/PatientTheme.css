@@ -1,0 +1,590 @@
+.patient-app-theme {
+	--patient-green: #059669;
+	--patient-green-dark: #047857;
+	--patient-green-soft: #ecfdf5;
+	--patient-green-border: #d1fae5;
+}
+
+.doctor-app-theme {
+	--doctor-blue: #1977cc;
+}
+
+.doctor-app-theme a:not(.footer a):not(.appointment-btn):not(.btn-get-started):not(.about-cta-btn):not(.about-doctor-card__cta):not(.our-doctor-card__book):not(.dash-home__pill) {
+	color: var(--doctor-blue);
+}
+
+.doctor-app-theme #header .logo a,
+.doctor-app-theme #header .logo-brand,
+.doctor-app-theme .nav-popover-dashboard-link {
+	color: var(--doctor-blue);
+}
+
+.doctor-app-theme .btn-get-started {
+	background: var(--doctor-blue);
+	color: #fff;
+}
+
+.doctor-app-theme .footer {
+	background: #123f67;
+}
+
+.doctor-app-theme .footer-list li a,
+.doctor-app-theme .footer-contact__item a,
+.doctor-app-theme .footer-policy li a {
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.doctor-app-theme .footer::before {
+	background: linear-gradient(135deg, rgba(18, 63, 103, 0.98) 0%, rgba(25, 119, 204, 0.95) 100%);
+}
+
+.doctor-app-theme .footer-list li a:hover,
+.doctor-app-theme .footer-contact__item a:hover,
+.doctor-app-theme .footer-policy li a:hover {
+	color: #bfdbfe;
+}
+
+.doctor-app-theme #header .appointment-btn,
+.doctor-app-theme .ant-btn-primary {
+	background: var(--doctor-blue);
+	border-color: var(--doctor-blue);
+}
+
+.doctor-app-theme #header .appointment-btn,
+.doctor-app-theme #header .appointment-btn:hover {
+	color: #fff;
+}
+
+.doctor-app-theme #header .appointment-btn:hover,
+.doctor-app-theme .ant-btn-primary:hover,
+.doctor-app-theme .ant-btn-primary:focus {
+	background: #1565a0;
+	border-color: #1565a0;
+}
+
+.doctor-app-theme .about-us .overlay {
+	background: #223a66 !important;
+}
+
+.patient-app-theme a:not(.footer a):not(.appointment-btn):not(.btn-get-started):not(.about-cta-btn):not(.about-doctor-card__cta):not(.our-doctor-card__book) {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme a:hover {
+	color: #065f46;
+}
+
+.patient-app-theme #header {
+	box-shadow: 0 2px 15px rgba(6, 95, 70, 0.1);
+}
+
+.patient-app-theme #header .navbar a:hover,
+.patient-app-theme #header .navbar .active,
+.patient-app-theme #header .navbar .active:focus,
+.patient-app-theme #header .navbar li:hover > a,
+.patient-app-theme #header .navbar .dropdown ul a:hover,
+.patient-app-theme #header #navbar ul li:hover > a {
+	color: var(--patient-green-dark);
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme #header .appointment-btn,
+.patient-app-theme .ant-btn-primary {
+	background: var(--patient-green);
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme #header .appointment-btn,
+.patient-app-theme #header .appointment-btn:hover {
+	color: #fff;
+}
+
+.patient-app-theme #header .appointment-btn:hover,
+.patient-app-theme .ant-btn-primary:hover,
+.patient-app-theme .ant-btn-primary:focus {
+	background: var(--patient-green-dark);
+	border-color: var(--patient-green-dark);
+}
+
+.patient-app-theme .about-us .overlay {
+	background: #047857 !important;
+}
+
+.patient-app-theme .ant-btn-link {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .ant-btn-link:hover {
+	color: #065f46;
+}
+
+.patient-app-theme .ant-input:hover,
+.patient-app-theme .ant-input-affix-wrapper:hover,
+.patient-app-theme .ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+	border-color: #34b883;
+}
+
+.patient-app-theme .ant-input:focus,
+.patient-app-theme .ant-input-affix-wrapper-focused,
+.patient-app-theme .ant-select-focused .ant-select-selector {
+	border-color: var(--patient-green) !important;
+	box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.12) !important;
+}
+
+.patient-app-theme .ant-checkbox-checked .ant-checkbox-inner,
+.patient-app-theme .ant-radio-checked .ant-radio-inner,
+.patient-app-theme .ant-slider-track,
+.patient-app-theme .ant-switch-checked {
+	background-color: var(--patient-green);
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme .ant-radio-checked .ant-radio-inner::after {
+	background-color: var(--patient-green);
+}
+
+.patient-app-theme .ant-pagination .ant-pagination-item-active {
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme .ant-pagination .ant-pagination-item-active a,
+.patient-app-theme .ant-pagination .ant-pagination-item a:hover,
+.patient-app-theme .ant-tabs .ant-tabs-tab:hover,
+.patient-app-theme .ant-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .ant-tabs .ant-tabs-ink-bar,
+.patient-app-theme .ant-steps-item-process .ant-steps-item-icon,
+.patient-app-theme .ant-steps-item-finish .ant-steps-item-icon {
+	background: var(--patient-green);
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme .ant-steps-item-finish .ant-steps-item-tail::after {
+	background-color: var(--patient-green);
+}
+
+.patient-app-theme .track-page {
+	background: linear-gradient(180deg, #ecfdf5 0%, #fff 38%);
+}
+
+.patient-app-theme .track-page__title-icon,
+.patient-app-theme .track-page__info-icon,
+.patient-app-theme .track-page__link {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .track-page__info-card:hover,
+.patient-app-theme .track-page__how-card:hover {
+	box-shadow: 0 12px 32px rgba(6, 95, 70, 0.12) !important;
+}
+
+.patient-app-theme .track-page__side-card {
+	background: linear-gradient(165deg, #064e3b 0%, #047857 60%, #0f9f78 100%) !important;
+	box-shadow: 0 20px 50px -20px rgba(6, 95, 70, 0.4) !important;
+}
+
+.patient-app-theme .track-page__side-icon {
+	color: #a7f3d0;
+}
+
+.patient-app-theme .track-page__recent-tag:hover {
+	color: var(--patient-green-dark) !important;
+	border-color: var(--patient-green) !important;
+}
+
+.patient-app-theme .track-page__how-num {
+	background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.patient-app-theme .track-page__faq {
+	background: linear-gradient(180deg, transparent 0%, #f0fdf4 40%);
+}
+
+.patient-app-theme .track-detail {
+	background-color: #f0fdf4;
+}
+
+.patient-app-theme .time-line-section::-webkit-scrollbar-thumb {
+	background-color: #34b883;
+}
+
+.patient-app-theme .appointment-page {
+	background: linear-gradient(180deg, #ecfdf5 0%, #fff 24%);
+}
+
+.patient-app-theme .appointment-page .ant-steps-item-process .ant-steps-item-icon,
+.patient-app-theme .appointment-page .ant-steps-item-finish .ant-steps-item-icon {
+	background: var(--patient-green) !important;
+	border-color: var(--patient-green) !important;
+}
+
+.patient-app-theme .appointment-page .ant-steps-item-finish .ant-steps-item-tail::after {
+	background: var(--patient-green) !important;
+}
+
+.patient-app-theme .select-doctor-card--selected {
+	border-color: var(--patient-green) !important;
+	box-shadow: 0 4px 16px rgba(6, 95, 70, 0.18);
+}
+
+.patient-app-theme .select-doctor-card__designation,
+.patient-app-theme .select-doctor-card--rich .select-doctor-card__meta-icon,
+.patient-app-theme .datetime-summary__row .icon,
+.patient-app-theme .order-summary-card .summary-total .amount {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .select-doctor-card--rich .select-doctor-card__btn,
+.patient-app-theme .appointment-actions .ant-btn-primary {
+	background: var(--patient-green);
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme .datetime-date-card:hover,
+.patient-app-theme .payment-method-option:hover {
+	border-color: var(--patient-green);
+	background: rgba(5, 150, 105, 0.06);
+}
+
+.patient-app-theme .datetime-date-card.datetime-date-card--active {
+	border-color: var(--patient-green);
+	background: var(--patient-green);
+	color: #fff;
+}
+
+.patient-app-theme .payment-method-option.payment-method-option--active {
+	border-color: var(--patient-green);
+	background: rgba(5, 150, 105, 0.08);
+}
+
+.patient-app-theme .search-doctor-page,
+.patient-app-theme .doctor-profile-page {
+	background: #f0fdf4;
+}
+
+.patient-app-theme .search-sidebar__clear,
+.patient-app-theme .doctor-card__photo-placeholder,
+.patient-app-theme .doctor-card__price-pill svg,
+.patient-app-theme .doctor-card__name a:hover,
+.patient-app-theme .doctor-card__designation,
+.patient-app-theme .doctor-card__spec-icon {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .search-sidebar__input.ant-input-affix-wrapper:hover,
+.patient-app-theme .search-sidebar__input.ant-input-affix-wrapper:focus-within,
+.patient-app-theme .search-sidebar__select.ant-select:hover .ant-select-selector,
+.patient-app-theme .search-sidebar__select.ant-select.ant-select-focused .ant-select-selector {
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme .search-sidebar__slider .ant-slider-track {
+	background: var(--patient-green);
+}
+
+.patient-app-theme .search-sidebar__slider .ant-slider-handle::after {
+	box-shadow: 0 0 0 2px var(--patient-green);
+}
+
+.patient-app-theme .doctor-card:hover {
+	box-shadow: 0 4px 12px rgba(6, 95, 70, 0.1), 0 24px 48px -12px rgba(6, 95, 70, 0.14);
+}
+
+.patient-app-theme .doctor-hero__bg {
+	background: linear-gradient(135deg, #047857 0%, #0f9f78 100%);
+}
+
+.patient-app-theme .doctor-hero__image-placeholder,
+.patient-app-theme .doctor-hero__designation,
+.patient-app-theme .doctor-hero__rating-number,
+.patient-app-theme .doctor-hero__stat-icon {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .availability-status-card {
+	background: linear-gradient(135deg, #047857 0%, #0f9f78 100%);
+	box-shadow: 0 8px 24px rgba(6, 95, 70, 0.25);
+}
+
+.patient-app-theme .availability-item--today {
+	background: #ecfdf5;
+	border-bottom-color: #d1fae5;
+}
+
+.patient-app-theme .availability-today-label {
+	color: var(--patient-green-dark);
+	background: rgba(5, 150, 105, 0.1);
+}
+
+.patient-app-theme .booking-doc-img a,
+.patient-app-theme .booking-success-info__icon,
+.patient-app-theme .booking-success-doctor__role {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .booking-success-info__icon {
+	background: rgba(5, 150, 105, 0.1);
+}
+
+.patient-app-theme .booking-success-doctor {
+	background: linear-gradient(135deg, #ecfdf5 0%, #fff 100%);
+	border-color: rgba(5, 150, 105, 0.16);
+}
+
+.patient-app-theme .booking-success-doctor__placeholder {
+	background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .booking-success-actions .ant-btn-primary {
+	box-shadow: 0 8px 20px rgba(6, 95, 70, 0.22);
+}
+
+.patient-app-theme .about-label,
+.patient-app-theme .contact-label,
+.patient-app-theme .services-label,
+.patient-app-theme .section-doctor-label,
+.patient-app-theme .specialities-label,
+.patient-app-theme .testimonial-section__label,
+.patient-app-theme .gallery-section__label,
+.patient-app-theme .section-title h2::after,
+.patient-app-theme .about-doctor-card__placeholder,
+.patient-app-theme .about-doctor-card__designation {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .about-stats,
+.patient-app-theme .about-doctor-card__cta,
+.patient-app-theme .about-cta-btn,
+.patient-app-theme .contact-info-icon,
+.patient-app-theme .contact-submit-btn {
+	background: linear-gradient(135deg, #047857 0%, #0f9f78 100%);
+}
+
+.patient-app-theme .about-value-card:hover,
+.patient-app-theme .about-doctor-card:hover,
+.patient-app-theme .contact-info-card:hover {
+	box-shadow: 0 12px 40px rgba(6, 95, 70, 0.13);
+}
+
+.patient-app-theme .about-value-icon,
+.patient-app-theme .service-content-icon,
+.patient-app-theme .book-doctor-card__photo-placeholder,
+.patient-app-theme .testimonial-card__avatar-placeholder {
+	background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .about-doctor-card__cta:hover,
+.patient-app-theme .about-cta-btn:hover {
+	color: #fff;
+	box-shadow: 0 10px 26px rgba(6, 95, 70, 0.3);
+}
+
+.patient-app-theme .contact-info-card:hover,
+.patient-app-theme .contact-form .form-control:focus {
+	border-color: var(--patient-green);
+}
+
+.patient-app-theme .contact-info-card:hover {
+	box-shadow: 0 8px 24px rgba(6, 95, 70, 0.12);
+}
+
+.patient-app-theme .contact-info-link,
+.patient-app-theme .service-content-cta,
+.patient-app-theme .section-doctor-cta,
+.patient-app-theme .info-box-icon,
+.patient-app-theme .available-feature-icon,
+.patient-app-theme .our-doctor-card__avatar-placeholder,
+.patient-app-theme .our-doctor-card__name:hover,
+.patient-app-theme .our-doctor-card__designation,
+.patient-app-theme .testimonial-section__label,
+.patient-app-theme .testimonial-swiper .swiper-button-prev,
+.patient-app-theme .testimonial-swiper .swiper-button-next,
+.patient-app-theme .gallery-section__label {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .contact-info-card:hover,
+.patient-app-theme .service-content-card,
+.patient-app-theme .about-doctor-card__photo,
+.patient-app-theme .our-doctor-card__avatar,
+.patient-app-theme .our-doctor-card__designation,
+.patient-app-theme .testimonial-card__avatar-placeholder {
+	border-color: rgba(5, 150, 105, 0.18);
+}
+
+.patient-app-theme .contact-form .form-control:focus {
+	box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+}
+
+.patient-app-theme .contact-submit-btn:hover:not(:disabled) {
+	box-shadow: 0 12px 30px rgba(6, 95, 70, 0.3);
+}
+
+.patient-app-theme #hero {
+	background-image: linear-gradient(135deg, #ecfdf5, #fff);
+}
+
+.patient-app-theme #hero .btn-get-started,
+.patient-app-theme .why-us-card,
+.patient-app-theme .about-doctor-card__cta,
+.patient-app-theme .about-cta-btn,
+.patient-app-theme .our-doctor-card__book {
+	background: linear-gradient(135deg, #047857 0%, #0f9f78 100%);
+}
+
+.patient-app-theme #hero .btn-get-started:hover,
+.patient-app-theme .our-doctor-card__social-link:hover {
+	background: #047857;
+}
+
+.patient-app-theme .why-us {
+	background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
+}
+
+.patient-app-theme .why-us-card {
+	box-shadow: 0 20px 50px -12px rgba(6, 95, 70, 0.3);
+}
+
+.patient-app-theme .info-box {
+	box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 20px 40px -12px rgba(6, 95, 70, 0.1);
+}
+
+.patient-app-theme .info-box:hover {
+	border-color: rgba(5, 150, 105, 0.18);
+	box-shadow: 0 8px 16px -4px rgba(15, 23, 42, 0.08), 0 24px 48px -16px rgba(6, 95, 70, 0.14);
+}
+
+.patient-app-theme .info-box-icon {
+	background: rgba(5, 150, 105, 0.12);
+}
+
+.patient-app-theme .service-content-card {
+	background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+
+.patient-app-theme .service-cta:hover {
+	color: #065f46;
+}
+
+.patient-app-theme .specialities-section {
+	background: linear-gradient(180deg, #f0fdf4 0%, #e8f5ee 55%, #dff1e7 100%);
+}
+
+.patient-app-theme .specialities-section::before {
+	background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(5, 150, 105, 0.08), transparent 55%);
+}
+
+.patient-app-theme .specialities-header-line,
+.patient-app-theme .specialities-grid::-webkit-scrollbar-thumb,
+.patient-app-theme .speciality-check {
+	background: linear-gradient(90deg, transparent, #059669, #34b883, transparent);
+}
+
+.patient-app-theme .speciality-card:hover .speciality-name {
+	color: #047857;
+}
+
+.patient-app-theme .section-doctor,
+.patient-app-theme .testimonial-section,
+.patient-app-theme .gallery-section,
+.patient-app-theme .about-team {
+	background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+
+.patient-app-theme .book-doctor-card:hover,
+.patient-app-theme .book-doctor-card--featured,
+.patient-app-theme .book-doctor-card--selected {
+	border-color: rgba(5, 150, 105, 0.35);
+	box-shadow: 0 12px 40px rgba(6, 95, 70, 0.14);
+}
+
+.patient-app-theme .book-doctor-card__selected-banner,
+.patient-app-theme .book-doctor-card__badge,
+.patient-app-theme .our-doctor-card__book {
+	background: linear-gradient(135deg, #047857 0%, #0f9f78 100%);
+}
+
+.patient-app-theme .book-doctor-card__designation,
+.patient-app-theme .book-doctor-card__price,
+.patient-app-theme .book-doctor-card__link,
+.patient-app-theme .book-doctor-card__rating-icon {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .book-doctor-card__selected-banner {
+	color: #fff;
+}
+
+.patient-app-theme .our-doctors-section::before {
+	background:
+		radial-gradient(ellipse 60% 40% at 20% 0%, rgba(16, 185, 129, 0.14), transparent 55%),
+		radial-gradient(ellipse 50% 35% at 85% 100%, rgba(16, 185, 129, 0.08), transparent 50%);
+}
+
+.patient-app-theme .our-doctors-section__label {
+	color: #6ee7b7;
+}
+
+.patient-app-theme .our-doctors-section__line,
+.patient-app-theme .gallery-section__line {
+	background: linear-gradient(90deg, transparent, #059669, #34b883, transparent);
+}
+
+.patient-app-theme .our-doctor-card:hover {
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2), 0 32px 64px rgba(6, 95, 70, 0.25);
+}
+
+.patient-app-theme .our-doctor-card__avatar-placeholder {
+	background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.patient-app-theme .our-doctor-card__designation {
+	background: rgba(5, 150, 105, 0.1);
+}
+
+.patient-app-theme .our-doctor-card__book:hover {
+	background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+	box-shadow: 0 6px 18px rgba(6, 95, 70, 0.35);
+	color: #fff;
+}
+
+.patient-app-theme .testimonial-card:hover {
+	box-shadow: 0 12px 40px rgba(6, 95, 70, 0.1);
+}
+
+.patient-app-theme .available-feature-icon {
+	color: var(--patient-green-dark);
+}
+
+.patient-app-theme .gallery-section {
+	background: #f0fdf4;
+}
+
+.patient-app-theme .footer {
+	background: #064e3b;
+}
+
+.patient-app-theme .footer-list li a,
+.patient-app-theme .footer-contact__item a,
+.patient-app-theme .footer-policy li a {
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.patient-app-theme .footer::before {
+	background: linear-gradient(135deg, rgba(6, 78, 59, 0.98) 0%, rgba(5, 150, 105, 0.95) 100%);
+}
+
+.patient-app-theme .footer-list li a:hover,
+.patient-app-theme .footer-contact__item a:hover,
+.patient-app-theme .footer-policy li a:hover {
+	color: #a7f3d0;
+}
+
+.patient-app-theme .about-cta-btn:hover,
+.patient-app-theme .about-doctor-card__cta:hover {
+	background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+}
