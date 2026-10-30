@@ -1,204 +1,419 @@
-# MediConnect – Smart Healthcare & Doctor Appointment Platform
+# MediConnect
 
-**A full-stack web app where patients book visits, doctors manage schedules and prescriptions, and admins oversee the system — all in one place.**
+MediConnect is a full-stack healthcare and doctor appointment platform. Patients can find doctors and manage appointments; doctors can manage their schedules, patient care, and profiles; administrators can oversee the platform.
 
-[Read the full technical documentation](./finaldoc.md).
+## Features
 
-[![Watch on YouTube](https://img.shields.io/badge/Watch_on-YouTube-red?logo=youtube)](https://youtu.be/L6cgb7I-Ap4)
-[![Live demo — Netlify](https://img.shields.io/badge/Live_demo-Netlify-00C7B7?logo=netlify)](https://dental-doctor-ujjal.netlify.app/)
+- Public pages for finding doctors, services, blogs, and contact information.
+- Patient accounts, doctor favourites, appointment booking and tracking, invoices, prescriptions, and medical reports.
+- Doctor registration and profiles, appointment and schedule management, prescriptions, reviews, and blogs.
+- Admin and Super Admin dashboards for managing users and platform activity.
+- JWT-based authentication, role-aware API routes, and read-only demo-admin support.
+- Image uploads through Cloudinary when configured, with a local-disk fallback.
 
----
+## Architecture
 
-## In plain English: what is this?
+```text
+Browser
+  └── React single-page application
+        └── REST API (/api/v1)
+              ├── Express + TypeScript
+              ├── Prisma ORM
+              └── MySQL
 
-This project is like a **small clinic website**:
-
-- **Patients** can browse doctors, book a time that works for them, pay attention to confirmations, track an appointment with a **tracking ID**, and see prescriptions and invoices in their own area.
-- **Doctors** can see who booked them, manage their **available hours**, write **prescriptions**, and keep their **profile** up to date.
-- **Admins** get an overview: doctors, patients, appointments, reviews, and more (including optional **read-only “demo” admin** accounts for safe showcases).
-
-You do **not** need to be a developer to **use** the live site. The instructions below are for people who want to **run or customize** the project on their computer.
-
----
-
-## What you get (features)
-
-| For… | What they can do |
-|------|------------------|
-| **Visitors** | Home, about, services, blog, contact, search and filter doctors, book appointments. |
-| **Patients** | Sign up / sign in, dashboard, favourites, appointments, invoices, prescriptions, **track appointment** with ID. |
-| **Doctors** | Sign up with a specialization, wait for Super Admin approval before signing in, dashboard, appointments, patients, schedule, prescriptions, reviews, blogs, invoices, profile settings. |
-| **Admins** | Separate admin area: dashboard stats, manage appointments, doctors, patients, specialties, reviews, transactions. **Demo admins** (`isDemo` in database) can view everything but **cannot** change data (enforced by the API). |
-
-**Other useful pieces**
-
-- Email-related flows (e.g. resets, notifications) when you configure Gmail app password.
-- **Cloudinary** for profile and content images.
-- Modern UI (React + Ant Design) and a structured API (Node + Express + TypeScript + Prisma).
-
----
-
-## Tech stack (short)
-
-| Layer | Tools |
-|-------|--------|
-| **Website (frontend)** | React, Redux Toolkit, Ant Design, React Router, Axios |
-| **API (backend)** | Node.js, Express, TypeScript |
-| **Database** | MySQL |
-| **ORM** | Prisma |
-
----
-
-## Before you start (what to install)
-
-1. **[Node.js](https://nodejs.org/)** 20 or newer — includes `npm` (Node.js 24 was used for validation).
-2. A MySQL database accessible from the API.
-3. Optional but recommended for full features: **Google** account (app password for mail), **Cloudinary** account (images).
-
-You do **not** have to install Prisma or TypeScript globally — the steps below use `npx`.
-
----
-
-## Project layout
-
-```
-Doctor-Appointment/          ← React app (run from here with npm start)
-├── api/                     ← Backend API (Express + Prisma)
-│   ├── .env.example         ← Copy to .env and fill in
-│   └── prisma/
-│       └── schema.prisma    ← Database models
-├── .env                     ← Frontend: API URL (see below)
-└── project_setup.txt        ← Short project setup checklist
+Image uploads ── Cloudinary (current provider) or local API disk fallback
 ```
 
----
+In an AWS deployment, the API can run on EC2 and connect privately to RDS for MySQL. S3 can hold database backup files. **This repository does not currently upload images to S3**; using S3 for application images requires adding an S3 upload/storage implementation. See [AWS deployment](#aws-deployment) for the distinction and setup.
 
-## Setup guide (step by step)
+## Tech stack
 
-### 1. Clone the repository
+| Area | Technologies |
+|---|---|
+| Frontend | React 18, JavaScript, Redux Toolkit, React Router, Ant Design, Axios |
+| API | Node.js 20+, Express 4, TypeScript |
+| Database | MySQL |
+| Data access | Prisma ORM |
+| Authentication and validation | JSON Web Tokens, bcrypt, Zod |
+| Images and email | Cloudinary, Nodemailer |
+| Build and tooling | Create React App, TypeScript, ESLint |
+
+## Project structure
+
+```text
+.
+├── public/                 # Static frontend assets
+├── src/
+│   ├── components/         # Public pages and patient, doctor, and admin UI
+│   ├── helpers/            # API URL and frontend helpers
+│   └── redux/              # Redux store and state
+├── api/
+│   ├── prisma/             # MySQL schema and migrations
+│   ├── scripts/            # Seed and maintenance scripts
+│   └── src/
+│       ├── app/modules/    # Feature routes, controllers, services, validation
+│       ├── helpers/        # Upload, email, JWT, and validation helpers
+│       ├── config/         # API configuration
+│       └── server.ts       # API entry point
+├── Dockerfile              # Frontend container definition
+├── docker-compose.yml      # Local frontend/API containers
+└── package.json            # Frontend scripts and dependencies
+```
+
+## Local setup
+
+### Prerequisites
+
+- Node.js 20 or later and npm.
+- A MySQL server. MySQL can run locally or in a development database.
+- Optional: Cloudinary credentials for persistent image hosting and Gmail app-password settings for email features.
+
+### 1. Get the code and install dependencies
 
 ```bash
-git clone https://github.com/Ujjalzaman/Doctor-Appointment.git
-cd Doctor-Appointment
+git clone https://github.com/shivmurthy-07/AWS-Medic-Project.git
+cd AWS-Medic-Project
+npm ci
+cd api
+npm ci
 ```
+
+Run the commands from PowerShell, Command Prompt, macOS, or Linux. The repository has separate lockfiles for the frontend and API.
 
 ### 2. Create a MySQL database
 
-Create a database and a user with access to it using your preferred local or hosted MySQL provider. Set its connection string in `api/.env`:
+Create a database, for example `doctor_appointment`, and a MySQL user that can access it. A local MySQL shell can create the database with:
 
-```env
-DATABASE_URL="mysql://USER:PASSWORD@HOST:3306/DATABASE"
+```sql
+CREATE DATABASE doctor_appointment
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 ```
 
-Keep the URL private and use a separate database for development and production.
+Use the connection string format below. URL-encode special characters in the username or password.
 
-### 3. Configure the backend (`api/.env`)
-
-```bash
-cd api
-cp .env.example .env   # On Windows: copy .env.example .env
+```text
+mysql://USER:PASSWORD@HOST:3306/doctor_appointment
 ```
 
-Edit **`api/.env`** and set at least:
+### 3. Configure the API
 
-| Variable | What to put |
-|----------|-------------|
-| `DATABASE_URL` | MySQL connection URL (from step 2). |
-| `PORT` | e.g. `5050` (default in many setups). |
-| `JWT_SECRET` / `JWT_EXPIRED_IN` | Strong private signing key and expiry (see `.env.example`). |
-| `BACKEND_LOCAL_URL` | Legacy verification-link setting; not required for doctor signup or approval. |
-| `BACKEND_LIVE_URL` | Legacy verification-link setting; not required for doctor signup or approval. |
-| `CLIENT_LOCAL_URL` / `CLIENT_URL` | Local and deployed frontend origins. |
-| `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` | Optional in development. If omitted, `npm run seed:super-admin` creates username `superadmin` with a strong generated password printed once. In production, set both in `api/.env`. |
-| `EMAIL_PASS` | Optional Gmail [App Password](https://support.google.com/accounts/answer/185833) for password-reset and notification emails; not needed for doctor signup. |
-| `GMAIL_APP_EMAIL` / `ADMIN_EMAIL` | Optional email sender/contact addresses for password-reset and notification emails; not needed for doctor signup. |
-| `CLOUND_NAME`, `API_KEY`, `API_SECRET` | From [Cloudinary](https://cloudinary.com/) dashboard. |
+From the `api` directory, copy the example file:
 
-Install dependencies and generate Prisma Client:
+```powershell
+Copy-Item .env.example .env
+```
+
+On macOS or Linux, use `cp .env.example .env`. Edit `api/.env` and set at least:
+
+```dotenv
+DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/doctor_appointment"
+NODE_ENV=development
+PORT=5050
+JWT_SECRET=replace-with-a-long-random-secret
+JWT_REFRESH_SECRET=replace-with-a-different-long-random-secret
+JWT_EXPIRED_IN=30d
+CLIENT_LOCAL_URL=http://localhost:3000
+```
+
+Optional API settings:
+
+| Variable | Purpose |
+|---|---|
+| `CLOUD_NAME`, `API_KEY`, `API_SECRET` | Cloudinary image uploads. Without working Cloudinary credentials, uploads are saved under `api/uploads`; that directory is local and is not durable storage for production. |
+| `EMAIL_PASS`, `GMAIL_APP_EMAIL`, `ADMIN_EMAIL` | Email notifications and password-reset flows. Use a provider app password, not an account password. |
+| `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD` | Credentials for the Super Admin seed command. Set both explicitly for production. |
+| `CLIENT_URL` | Deployed frontend origin; use this in production. |
+| `BACKEND_LIVE_URL`, `BACKEND_LOCAL_URL` | API URL settings used by existing link and local-upload fallback code. |
+
+The API also accepts some legacy environment-variable spellings, including `CLOUND_NAME` and `JWT_EXPIRES_IN`; prefer the names shown in `api/.env.example` and the examples above.
+
+### 4. Prepare the database
+
+The checked-in migrations are incremental and do not create the entire original schema from an empty database. For a **new local database**, synchronize the current Prisma schema first, then mark the two included incremental migrations as already represented:
 
 ```bash
-npm install
 npx prisma generate
-```
-
-The checked-in migrations are incremental and assume the original application tables already exist. For a new database or an existing database without Prisma migration history, back up any data, then sync the schema once:
-
-```bash
 npx prisma db push
 npx prisma migrate resolve --applied 20261029_favourites_per_patient
 npx prisma migrate resolve --applied 20261029_super_admin_approval
 ```
 
-Only mark these migrations as applied after `db push` succeeds and the database matches `prisma/schema.prisma`. If Prisma warns about duplicate favourites, resolve those duplicates before retrying; do not blindly use `--accept-data-loss`. For databases already tracked by Prisma Migrate, use `npx prisma migrate deploy` instead. Use `migrate dev` to create future migrations in development and `migrate deploy` to apply them in deployment.
+Run these commands from `api`. Only use this initialization sequence on a new database after confirming that `db push` completed and the database matches `api/prisma/schema.prisma`. For a database that already has valid Prisma migration history, use `npx prisma migrate deploy` instead. Back up existing data before schema changes; do not use `--accept-data-loss` to bypass a Prisma warning.
 
-Start the API:
+### 5. Start the API
+
+From `api`:
 
 ```bash
 npm start
 ```
 
-Leave this terminal running. The API should listen on the port you set (e.g. **5050**).
+The development API listens on `http://localhost:5050`.
 
-### 4. Configure the frontend (root `.env`)
+To create a Super Admin, set `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD` in `api/.env`, then, from the repository root, run:
 
-In the **project root** (not inside `api/`), create or edit **`.env`**:
+```bash
+npm run seed:super-admin
+```
 
-```env
+Use a unique, strong password. Do not commit `.env` files or reuse development credentials in production.
+
+### 6. Configure and start the frontend
+
+Create a `.env` file in the repository root:
+
+```dotenv
 REACT_APP_USE_LOCAL_API=true
 REACT_APP_API_BASE_URL_LOCAL=http://localhost:5050
 ```
 
-Use your real API origin in production (no trailing slash required; the app adds `/api/v1` when needed).
-
-Install and run the website:
+In a second terminal, from the repository root:
 
 ```bash
-cd ..          # back to Doctor-Appointment root
-npm install
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). The frontend reads these `REACT_APP_*` values at build/start time; restart the frontend after changing them.
 
-### 5. Admin login (important)
+### Useful commands
 
-- Normal users sign up as **patient** or **doctor** from the app.
-- **Admin** users are **not** created from the sign-up form. You add them in the **`Auth`** table in the database with `role = admin` (and a hashed password consistent with how your app stores passwords), or use your own seed script.
-- For a **safe demo** for employers or clients, set **`isDemo = true`** on an admin row. That account can **browse** everything but **cannot** create, update, or delete data through the API.
+| Location | Command | Purpose |
+|---|---|---|
+| Repository root | `npm start` | Start the React development server |
+| Repository root | `npm run build` | Create the production frontend build in `build/` |
+| Repository root | `npm test -- --watchAll=false` | Run frontend tests once |
+| `api/` | `npm start` | Start the API in development mode |
+| `api/` | `npm run build` | Compile TypeScript and copy API templates |
+| `api/` | `npm test` | Build the API and run its validation tests |
+| `api/` | `npx prisma generate` | Generate Prisma Client |
 
-### 6. Common issues
+## AWS deployment
 
-| Problem | What to try |
-|---------|-------------|
-| Frontend cannot reach API | Check `REACT_APP_API_BASE_URL`, CORS, and that the API is running. |
-| Database connection failed | Verify the MySQL server is reachable and `DATABASE_URL` has the correct credentials, host, port, and database name. |
-| Prisma errors after pulling changes | Run `npx prisma generate`; for a migration-managed database, review and apply pending migrations with `npx prisma migrate deploy`. |
+This guide describes a single-EC2 deployment: Nginx serves the built React app and forwards API requests to the Node API on the same instance. RDS hosts MySQL, and a private S3 bucket stores logical database backups. It assumes you have an AWS account and a domain name.
 
----
+### Target architecture and current image-storage behavior
 
-## Video walkthrough
+```text
+Browser --HTTPS--> Nginx on EC2
+                      ├── React static build
+                      └── /api/v1 --> Express API on EC2:5050 (not public)
+                                         ├── private MySQL connection --> RDS
+                                         ├── image upload --> Cloudinary (current code)
+                                         └── backup upload --> private S3 bucket (AWS CLI/IAM role)
+```
 
-Older setup steps are also shown in this video; database setup may differ from this repository's current MySQL schema:
+The API's image helper currently integrates with Cloudinary and otherwise writes files to the API's local `uploads/` directory. **Creating an S3 bucket or attaching an IAM role alone will not make image uploads use S3.** To use S3 for images, implement and test an S3 storage adapter in the API, use the EC2 instance role with least-privilege bucket permissions, and keep the bucket private (serve images through signed URLs or an approved CDN). Until then, configure Cloudinary for production images; do not rely on EC2 local disk for durable uploads.
 
-[![YouTube](https://img.shields.io/badge/Watch_on-YouTube-red?logo=youtube)](https://youtu.be/L6cgb7I-Ap4)
+### 1. Create the network and security groups
 
----
+Use a VPC with a public subnet for EC2 and private subnets for RDS. Create security groups with these rules:
+
+- **EC2:** allow inbound SSH (`22`) only from your current IP while administering the instance; allow HTTP (`80`) and HTTPS (`443`) as needed. Do not expose API port `5050` publicly.
+- **RDS:** allow inbound MySQL (`3306`) **only from the EC2 security group**. Keep RDS private and disable public access.
+
+Prefer Systems Manager Session Manager over opening SSH when practical.
+
+### 2. Create the RDS MySQL database
+
+1. Create an RDS for MySQL instance in the same VPC and region as EC2.
+2. Select private subnets and disable public access.
+3. Configure its security group to accept port `3306` from the EC2 security group only.
+4. Create a database and application user with only the permissions the app needs. Store the database credentials in AWS Secrets Manager.
+5. Enable automated backups and choose a retention period appropriate for the service. Record the RDS endpoint, database name, user, and password securely.
+
+The API connection string will have this form:
+
+```text
+mysql://DB_USER:URL_ENCODED_PASSWORD@RDS_ENDPOINT:3306/doctor_appointment
+```
+
+### 3. Create S3 buckets and an EC2 IAM role
+
+Create a private S3 bucket for database backup files. Enable Block Public Access, default encryption, versioning, and a lifecycle policy that expires old backup versions according to your retention requirements.
+
+Create an EC2 instance role and attach it to the instance (an instance profile). Grant only the required bucket/prefix permissions, such as `s3:PutObject` for the backup prefix and `s3:ListBucket` scoped to that prefix. Do not put long-lived AWS access keys in `.env` or on the instance.
+
+If you later add S3 image uploads, use a separate media bucket and grant only the needed object operations on that bucket's specific prefix. Keep public access blocked.
+
+### 4. Launch and prepare EC2
+
+Launch an Amazon Linux 2023 EC2 instance in the VPC, attach the IAM role, and associate a stable public address or load balancer. Install Node.js 20+, Nginx, Git, and the MySQL client utilities needed for backups. Restrict administrative access and apply OS security updates.
+
+Point your domain to the EC2 public address or load balancer. Configure HTTPS with a trusted certificate (for example, AWS Certificate Manager when using an Application Load Balancer, or Certbot when TLS terminates on Nginx).
+
+### 5. Deploy the application and configure secrets
+
+Clone the repository onto EC2, install dependencies, and build the API:
+
+```bash
+git clone https://github.com/shivmurthy-07/AWS-Medic-Project.git /opt/mediconnect
+cd /opt/mediconnect/api
+npm ci
+npx prisma generate
+npm run build
+```
+
+Create `/opt/mediconnect/api/.env` with owner-only permissions. Populate it from a secure secret-management process; do not place real secrets in shell history or source control. At minimum configure:
+
+```dotenv
+NODE_ENV=production
+PORT=5050
+DATABASE_URL="mysql://DB_USER:URL_ENCODED_PASSWORD@RDS_ENDPOINT:3306/doctor_appointment"
+JWT_SECRET=use-a-unique-long-random-secret
+JWT_REFRESH_SECRET=use-a-different-unique-long-random-secret
+JWT_EXPIRED_IN=30d
+CLIENT_URL=https://YOUR_DOMAIN
+BACKEND_LIVE_URL=https://YOUR_DOMAIN/api/v1/auth/
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD=use-a-unique-strong-password
+CLOUD_NAME=your-cloudinary-name
+API_KEY=your-cloudinary-api-key
+API_SECRET=your-cloudinary-api-secret
+```
+
+Set the `CLIENT_URL` to the exact HTTPS origin used by the browser. Cloudinary values are needed only if you use Cloudinary for production images. Keep `SHOW_ERROR_DETAILS` unset or set to `false` in production.
+
+#### Initialize or update the RDS schema
+
+For a **brand-new RDS database**, first verify network access from EC2 and take a backup if any data exists. Because this repository's checked-in migrations are incremental, initialize the schema from the Prisma model and then mark the included migrations as applied:
+
+```bash
+cd /opt/mediconnect/api
+npx prisma db push
+npx prisma migrate resolve --applied 20261029_favourites_per_patient
+npx prisma migrate resolve --applied 20261029_super_admin_approval
+```
+
+Do not use this sequence on a database with existing migration history or production data without first reviewing the schema diff and taking a restorable backup. For a database already managed by Prisma Migrate, deploy reviewed migrations with:
+
+```bash
+npx prisma migrate deploy
+```
+
+Create the initial Super Admin once, using the configured production credentials:
+
+```bash
+npm run seed:super-admin
+```
+
+After confirming access, remove the bootstrap password from the deployment environment/secret if your secret-management process supports one-time bootstrap values, and rotate it if it was exposed.
+
+### 6. Build the frontend for the production API
+
+Create `/opt/mediconnect/.env` before building the frontend:
+
+```dotenv
+REACT_APP_USE_LOCAL_API=false
+REACT_APP_API_BASE_URL_LIVE=https://YOUR_DOMAIN
+```
+
+Build and publish the static files to Nginx's document root:
+
+```bash
+cd /opt/mediconnect
+npm ci
+npm run build
+sudo mkdir -p /var/www/mediconnect
+sudo cp -r build/. /var/www/mediconnect/
+```
+
+The frontend API URL is embedded at build time. Rebuild the frontend after changing the production API URL.
+
+### 7. Run the API as a service and configure Nginx
+
+Run the API under a dedicated, unprivileged Linux account using `systemd` or an equivalent process supervisor. Configure its working directory as `/opt/mediconnect/api`, load the API environment securely, and restart it automatically on failure. The API currently listens on its configured port on the EC2 instance; restrict port `5050` with the host firewall and security group so only local Nginx can reach it. Do not add a public inbound rule for that port.
+
+For example, after creating the `mediconnect` service account, create `/etc/systemd/system/mediconnect-api.service` and replace `/usr/bin/node` with the path returned by `command -v node` if necessary:
+
+```ini
+[Unit]
+Description=MediConnect API
+After=network.target
+
+[Service]
+Type=simple
+User=mediconnect
+WorkingDirectory=/opt/mediconnect/api
+EnvironmentFile=/opt/mediconnect/api/.env
+ExecStart=/usr/bin/node /opt/mediconnect/api/dist/server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Set the environment file's ownership and permissions so only the service account and system administrator can read it. Then enable and start the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now mediconnect-api
+sudo systemctl status mediconnect-api
+```
+
+Configure Nginx to serve the frontend and proxy API requests to Node. For an HTTP server block (add the TLS configuration required by your certificate setup):
+
+```nginx
+server {
+    listen 80;
+    server_name YOUR_DOMAIN;
+    root /var/www/mediconnect;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:5050;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+Validate the Nginx configuration, enable HTTPS, and verify that the frontend, API, authentication, and database connection work before directing users to the deployment.
+
+### 8. Back up the database to S3
+
+RDS automated backups and snapshots are the primary managed recovery mechanism. For an additional portable logical backup, install the MySQL client on EC2, create a dedicated read/backup MySQL account, and make its credentials available through a protected file or Secrets Manager integration. Do not put the database password directly in the command line.
+
+For example, with a root-readable MySQL client option file at `/etc/mediconnect/mysql-backup.cnf` and an EC2 role allowed to write to the backup bucket:
+
+```bash
+mysqldump --defaults-extra-file=/etc/mediconnect/mysql-backup.cnf \
+  --single-transaction --routines --triggers --events doctor_appointment \
+  | gzip \
+  | aws s3 cp - "s3://YOUR_BACKUP_BUCKET/mysql/$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
+```
+
+Run the command manually once and verify the resulting object and default encryption in S3. Then schedule it with a restricted systemd timer or cron job, log failures, and alert on missed backups. Keep RDS automated backups enabled as well; an S3 dump is not a substitute for testing RDS recovery. Periodically restore a backup into a separate test database and verify the application can read it.
+
+## Security and operations checklist
+
+- Keep RDS and S3 private; do not open MySQL to the internet or make a backup/media bucket public.
+- Use an EC2 instance role for AWS access and Secrets Manager for database and application secrets.
+- Use separate, strong JWT secrets per environment and rotate exposed credentials.
+- Use HTTPS, limit EC2 inbound rules, and do not expose port `5050`.
+- Configure RDS automated backup retention, S3 encryption/versioning/lifecycle, monitoring, and tested restore procedures.
+- Use Cloudinary for production images until the application has a tested S3 upload implementation. Local `api/uploads` files are not durable across instance replacement.
+- Review logs and alerts, patch EC2, and test deployment and database recovery before production use.
+
+## Troubleshooting
+
+| Symptom | Checks |
+|---|---|
+| Frontend cannot reach the API | Check the `REACT_APP_*` values used at build time, Nginx proxy rules, HTTPS, and API CORS `CLIENT_URL`. |
+| API cannot connect to RDS | Check the RDS endpoint, URL-encoded credentials, VPC/subnets, and that RDS security group allows `3306` from the EC2 security group. |
+| Prisma reports missing tables | Confirm the database/schema initialization steps and inspect migration history before applying schema changes. |
+| Uploaded image links fail after redeploy | Cloudinary is not configured and the API used its local-disk fallback; configure durable image storage. |
+| S3 backup upload is denied | Check the attached EC2 instance role, bucket name/region, encryption requirements, and permissions for the exact backup prefix. |
 
 ## Contributing
 
-1. Fork the repo and clone your fork.  
-2. Create a branch: `git checkout -b your-feature-name`  
-3. Make changes, test with `npm start` (frontend and API, in their respective directories).
-4. Commit and push, then open a **Pull Request** with a clear description.
-
----
-
-Have a product idea, a similar project, or want to collaborate? Reach out via the website or email — I’m happy to hear from you.
-
----
-
-## License & thanks
-
-This repository is shared for learning and portfolio use. If you ship a public product, review dependencies’ licenses and add your own license file if needed.
-
-Thank you for reading — and happy building.
+1. Create a feature branch.
+2. Make focused changes and run the relevant frontend or API checks.
+3. Open a pull request with a description of the change and its validation.
