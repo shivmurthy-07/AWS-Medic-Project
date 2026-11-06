@@ -10,6 +10,7 @@ const router = express.Router();
 router.get('/doctor', auth(AuthUser.DOCTOR), MedicalReportController.getDoctorReports);
 router.get('/patient', auth(AuthUser.PATIENT), MedicalReportController.getPatientReports);
 router.get('/patient/:patientId', auth(AuthUser.DOCTOR, AuthUser.ADMIN), MedicalReportController.getPatientReportsByDoctor);
+router.get('/appointment/:appointmentId', auth(AuthUser.DOCTOR, AuthUser.PATIENT, AuthUser.ADMIN), MedicalReportController.getReportsByAppointment);
 router.get('/:id', auth(AuthUser.DOCTOR, AuthUser.PATIENT, AuthUser.ADMIN), MedicalReportController.getSingleReport);
 router.post('/upload', auth(AuthUser.DOCTOR, AuthUser.PATIENT, AuthUser.ADMIN), CloudinaryHelper.upload.single('file'), MedicalReportController.uploadReportFile);
 router.post('/create', auth(AuthUser.DOCTOR, AuthUser.PATIENT), MedicalReportController.createReport);

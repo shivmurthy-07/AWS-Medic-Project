@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../DashboardLayout/DashboardLayout';
 import useAuthCheck from '../../../redux/hooks/useAuthCheck';
+import ClinicalReportViewer from '../../Patient/MedicalRecords/ClinicalReportViewer';
 import {
     useGetDoctorReportsQuery,
     useGetPatientReportsQuery,
     useCreateMedicalReportMutation,
     useDeleteMedicalReportMutation
 } from '../../../redux/api/medicalReportApi';
-import { useGetDoctorPatientsQuery } from '../../../redux/api/appointmentApi';
+import { useGetDoctorPatientsQuery, useGetDoctorAppointmentsQuery } from '../../../redux/api/appointmentApi';
 import {
     Table,
     Card,
@@ -35,9 +36,17 @@ import {
     FaFilePdf,
     FaXRay,
     FaVial,
-    FaHeartbeat
+    FaHeartbeat,
+    FaMagic,
 } from 'react-icons/fa';
 import moment from 'moment';
+import {
+    CLINICAL_PROBLEMS,
+    CLINICAL_PROBLEM_TYPES,
+    filterReportsByProblem,
+    getGeneratorTemplateForProblem,
+    detectProblemCategory,
+} from '../../../utils/clinicalProblemMatcher';
 import './Reports.css';
 
 const { Option } = Select;
@@ -70,11 +79,15 @@ const Reports = () => {
 const DoctorReportsView = () => {
     const { data: reportsData, isLoading, refetch } = useGetDoctorReportsQuery();
     const { data: patientsData } = useGetDoctorPatientsQuery();
+    const { data: appointmentsData } = useGetDoctorAppointmentsQuery({});
     const [createReport, { isLoading: isCreating }] = useCreateMedicalReportMutation();
     const [deleteReport, { isLoading: isDeleting }] = useDeleteMedicalReportMutation();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState(undefined);
+    const [problemFilter, setProblemFilter] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
+    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
+    const [selectedPatientId, setSelectedPatientId] = useState(undefined);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -82,6 +95,11 @@ const DoctorReportsView = () => {
 
     const reports = reportsData || [];
     const patients = patientsData || [];
+
+    const patientAppointments = useMemo(() => {
+        if (!selectedPatientId || !appointmentsData) return [];
+        return appointmentsData.filter(a => a.patientId === selectedPatientId);
+    }, [selectedPatientId, appointmentsData]);
 
     const filteredReports = useMemo(() => {
         let result = reports;
@@ -96,8 +114,25 @@ const DoctorReportsView = () => {
         if (typeFilter) {
             result = result.filter(r => r.reportType === typeFilter);
         }
+        if (problemFilter) {
+            result = filterReportsByProblem(result, problemFilter);
+        }
         return result;
-    }, [reports, searchTerm, typeFilter]);
+    }, [reports, searchTerm, typeFilter, problemFilter]);
+
+    const handleAutofillForProblem = (problemKey) => {
+        const template = getGeneratorTemplateForProblem(problemKey);
+        form.setFieldsValue({
+            patientProblem: problemKey,
+            reportTitle: template.reportTitle,
+            reportType: template.reportType,
+            description: template.description + '\n\n' + template.findingsText,
+            fileUrl: template.fileUrl,
+            fileName: template.fileName,
+            status: 'completed',
+        });
+        message.success(`Clinical template loaded for: ${template.reportTitle}`);
+    };
 
     const stats = useMemo(() => {
         return {
@@ -111,6 +146,7 @@ const DoctorReportsView = () => {
     const handleCreateReport = async (values) => {
         try {
             await createReport({
+                appointmentId: values.appointmentId || null,
                 patientId: values.patientId,
                 reportType: values.reportType,
                 reportTitle: values.reportTitle,
@@ -121,9 +157,10 @@ const DoctorReportsView = () => {
                 fileName: values.fileName || null,
             }).unwrap();
 
-            message.success('Medical report uploaded successfully');
+            message.success('Medical report generated successfully');
             setIsUploadModalOpen(false);
             form.resetFields();
+            setSelectedPatientId(undefined);
             refetch();
         } catch (error) {
             message.error(error?.data?.message || 'Failed to upload report');
@@ -188,6 +225,23 @@ const DoctorReportsView = () => {
             dataIndex: 'reportDate',
             key: 'reportDate',
             render: (date) => moment(date).format('MMM DD, YYYY'),
+        },
+        {
+            title: 'Consultation Appt',
+            key: 'appointment',
+            render: (_, record) => {
+                if (record.appointment?.trackingId) {
+                    return (
+                        <div>
+                            <Tag color="purple">#{record.appointment.trackingId}</Tag>
+                            <div className="small text-muted" style={{ fontSize: '11px' }}>
+                                {record.appointment.scheduleDate ? moment(record.appointment.scheduleDate).format('MMM DD, YYYY') : 'Consulted'}
+                            </div>
+                        </div>
+                    );
+                }
+                return <Tag color="default">Direct Consultation</Tag>;
+            },
         },
         {
             title: 'Uploaded By',
@@ -298,6 +352,56 @@ const DoctorReportsView = () => {
             </div>
 
             <Card className="reports-table-card">
+                {/* Patient Clinical Chief Complaint / Problem Filter Bar */}
+                <div className="card border-0 mb-3 p-3 text-white rounded-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #0f2b5c 0%, #0d9488 100%)' }}>
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <div className="d-flex align-items-center gap-2 mb-1">
+                                <span style={{ fontSize: '1.4rem' }}>
+                                    {problemFilter === CLINICAL_PROBLEM_TYPES.CHEST ? '🫁' : problemFilter === CLINICAL_PROBLEM_TYPES.SPINE ? '🦴' : problemFilter === CLINICAL_PROBLEM_TYPES.ABDOMEN ? '🩺' : problemFilter === CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC ? '🩸' : '📋'}
+                                </span>
+                                <h5 className="mb-0 text-white fw-bold">
+                                    {problemFilter === CLINICAL_PROBLEM_TYPES.CHEST
+                                        ? 'Patient Clinical Problem: Chest & Respiratory (Chest Pain, Cough, Bronchitis)'
+                                        : problemFilter === CLINICAL_PROBLEM_TYPES.SPINE
+                                        ? 'Patient Clinical Problem: Spine & Orthopedic'
+                                        : problemFilter === CLINICAL_PROBLEM_TYPES.ABDOMEN
+                                        ? 'Patient Clinical Problem: Abdominal & Digestive'
+                                        : problemFilter === CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC
+                                        ? 'Patient Clinical Problem: Blood & Metabolic'
+                                        : 'All Patient Diagnostic Reports'}
+                                </h5>
+                                <Tag color="cyan">Clinically Matched</Tag>
+                            </div>
+                            <p className="mb-0 small text-light opacity-90">
+                                {problemFilter === CLINICAL_PROBLEM_TYPES.CHEST
+                                    ? 'Active Clinical Rule: Displaying ONLY diagnostic reports matching chest symptoms (Digital Chest X-Ray PA View, 12-Lead ECG). Non-chest modalities (Spine MRI, Abdominal Ultrasound) are filtered out.'
+                                    : problemFilter === CLINICAL_PROBLEM_TYPES.SPINE
+                                    ? 'Active Clinical Rule: Displaying ONLY spine/orthopedic reports (Lumbar Spine MRI).'
+                                    : problemFilter === CLINICAL_PROBLEM_TYPES.ABDOMEN
+                                    ? 'Active Clinical Rule: Displaying ONLY abdominal diagnostic reports (High-Resolution USG Abdomen).'
+                                    : problemFilter === CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC
+                                    ? 'Active Clinical Rule: Displaying ONLY hematology and metabolic panels (CBC with ESR, Lipid Profile).'
+                                    : 'Showing all diagnostic reports without clinical filtering.'}
+                            </p>
+                        </div>
+                        <div className="d-flex align-items-center gap-2">
+                            <span className="small text-white-50">Filter by Problem:</span>
+                            <Select
+                                value={problemFilter}
+                                onChange={setProblemFilter}
+                                style={{ width: 260 }}
+                            >
+                                <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest &amp; Respiratory</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine &amp; Orthopedic</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal &amp; Digestive</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="reports-filter-bar">
                     <Input
                         placeholder="Search patient name, report title..."
@@ -351,15 +455,83 @@ const DoctorReportsView = () => {
                         status: 'completed'
                     }}
                 >
+                    <div className="p-3 mb-3 rounded border border-primary bg-light">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong className="text-primary">
+                                <FaHeartbeat className="me-1" /> Patient Chief Complaint / Problem:
+                            </strong>
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<FaMagic />}
+                                onClick={() => handleAutofillForProblem(selectedProblemInModal)}
+                            >
+                                Auto-Generate Report for this Problem
+                            </Button>
+                        </div>
+                        <Select
+                            value={selectedProblemInModal}
+                            onChange={(val) => {
+                                setSelectedProblemInModal(val);
+                                handleAutofillForProblem(val);
+                            }}
+                            style={{ width: '100%' }}
+                        >
+                            <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest Problem (Chest Pain, Cough, Bronchitis)</Option>
+                            <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine / Back Problem (Lumbar Stiffness, Sciatica)</Option>
+                            <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal Problem (Stomach, Gallbladder, Visceral)</Option>
+                            <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic (Fever, Infection, Lipids)</Option>
+                        </Select>
+                        <small className="text-muted d-block mt-1">
+                            {selectedProblemInModal === CLINICAL_PROBLEM_TYPES.CHEST
+                                ? 'Enforces clinical validity: Generates a verified Chest report (Chest X-Ray) with lung & cardiopulmonary observations.'
+                                : 'Ensures generated report matches the selected patient complaint.'}
+                        </small>
+                    </div>
+
                     <Form.Item
                         name="patientId"
-                        label="Select Patient"
+                        label="Select Consulted Patient"
                         rules={[{ required: true, message: 'Please select a patient' }]}
                     >
-                        <Select placeholder="Choose patient" showSearch optionFilterProp="children">
+                        <Select
+                            placeholder="Choose patient"
+                            showSearch
+                            optionFilterProp="children"
+                            onChange={(pId) => {
+                                setSelectedPatientId(pId);
+                                form.setFieldsValue({ appointmentId: undefined });
+                            }}
+                        >
                             {patients.map((p) => (
                                 <Option key={p.id} value={p.id}>
                                     {p.firstName} {p.lastName} ({p.email || p.mobile || 'No contact'})
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="appointmentId"
+                        label="Linked Consultation / Appointment"
+                    >
+                        <Select
+                            placeholder={selectedPatientId ? "Select consultation appointment" : "Select a patient first"}
+                            allowClear
+                            disabled={!selectedPatientId}
+                            onChange={(apptId) => {
+                                const appt = appointmentsData?.find(a => a.id === apptId);
+                                if (appt) {
+                                    const fullText = `${appt.reasonForVisit || ''} ${appt.description || ''}`;
+                                    const detected = detectProblemCategory(fullText);
+                                    setSelectedProblemInModal(detected);
+                                    handleAutofillForProblem(detected);
+                                }
+                            }}
+                        >
+                            {patientAppointments.map(a => (
+                                <Option key={a.id} value={a.id}>
+                                    #{a.trackingId} — {moment(a.scheduleDate).format('MMM DD, YYYY')} ({a.reasonForVisit || 'Consultation'})
                                 </Option>
                             ))}
                         </Select>
@@ -437,58 +609,11 @@ const DoctorReportsView = () => {
             </Modal>
 
             {/* View Report Detail Modal */}
-            <Modal
-                title={`Medical Report: ${selectedReport?.reportTitle}`}
+            <ClinicalReportViewer
+                report={selectedReport}
                 open={isDetailModalOpen}
-                onCancel={() => setIsDetailModalOpen(false)}
-                footer={[
-                    <Button key="close" onClick={() => setIsDetailModalOpen(false)}>Close</Button>
-                ]}
-                width={700}
-            >
-                {selectedReport && (
-                    <div>
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <Tag color={getTypeColor(selectedReport.reportType)} style={{ fontSize: '0.9rem', padding: '4px 10px' }}>
-                                {selectedReport.reportType}
-                            </Tag>
-                            <span className="text-muted">
-                                Test Date: <strong>{moment(selectedReport.reportDate).format('MMMM DD, YYYY')}</strong>
-                            </span>
-                        </div>
-
-                        <div className="card p-3 mb-3 bg-light border-0">
-                            <h6 className="mb-2 text-primary">Patient Details</h6>
-                            <div><strong>Name:</strong> {selectedReport.patient?.firstName} {selectedReport.patient?.lastName}</div>
-                            <div><strong>Email:</strong> {selectedReport.patient?.email || 'N/A'}</div>
-                            <div><strong>Mobile:</strong> {selectedReport.patient?.mobile || 'N/A'}</div>
-                        </div>
-
-                        <div className="mb-3">
-                            <h6 className="fw-bold">Clinical Findings &amp; Description</h6>
-                            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                                {selectedReport.description || 'No detailed clinical notes provided.'}
-                            </p>
-                        </div>
-
-                        {selectedReport.fileUrl ? (
-                            <div className="report-detail-preview">
-                                <h6 className="fw-bold mb-2">Attached Scan / Document</h6>
-                                {selectedReport.fileUrl.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) ? (
-                                    <img src={selectedReport.fileUrl} alt="Report Scan" />
-                                ) : (
-                                    <div className="d-flex align-items-center gap-2">
-                                        <FaFilePdf className="text-danger" size={24} />
-                                        <a href={selectedReport.fileUrl} target="_blank" rel="noopener noreferrer">
-                                            {selectedReport.fileName || 'View Attached Medical Document'}
-                                        </a>
-                                    </div>
-                                )}
-                            </div>
-                        ) : null}
-                    </div>
-                )}
-            </Modal>
+                onClose={() => setIsDetailModalOpen(false)}
+            />
         </div>
     );
 };
@@ -498,6 +623,8 @@ const PatientReportsView = () => {
     const [createReport, { isLoading: isCreating }] = useCreateMedicalReportMutation();
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState(undefined);
+    const [problemFilter, setProblemFilter] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
+    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -518,8 +645,24 @@ const PatientReportsView = () => {
         if (typeFilter) {
             result = result.filter(r => r.reportType === typeFilter);
         }
+        if (problemFilter) {
+            result = filterReportsByProblem(result, problemFilter);
+        }
         return result;
-    }, [reports, searchTerm, typeFilter]);
+    }, [reports, searchTerm, typeFilter, problemFilter]);
+
+    const handleAutofillForProblem = (problemKey) => {
+        const template = getGeneratorTemplateForProblem(problemKey);
+        form.setFieldsValue({
+            patientProblem: problemKey,
+            reportTitle: template.reportTitle,
+            reportType: template.reportType,
+            description: template.description + '\n\n' + template.findingsText,
+            fileUrl: template.fileUrl,
+            fileName: template.fileName,
+        });
+        message.success(`Clinical template loaded for: ${template.reportTitle}`);
+    };
 
     const handleCreateReport = async (values) => {
         try {
@@ -582,6 +725,23 @@ const PatientReportsView = () => {
             render: (date) => moment(date).format('MMM DD, YYYY'),
         },
         {
+            title: 'Consultation Appt',
+            key: 'appointment',
+            render: (_, record) => {
+                if (record.appointment?.trackingId) {
+                    return (
+                        <div>
+                            <Tag color="purple">#{record.appointment.trackingId}</Tag>
+                            <div className="small text-muted" style={{ fontSize: '11px' }}>
+                                {record.appointment.scheduleDate ? moment(record.appointment.scheduleDate).format('MMM DD, YYYY') : 'Consulted'}
+                            </div>
+                        </div>
+                    );
+                }
+                return <Tag color="default">Direct Consultation</Tag>;
+            },
+        },
+        {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
@@ -631,6 +791,56 @@ const PatientReportsView = () => {
             </div>
 
             <Card className="reports-table-card">
+                {/* Patient Clinical Chief Complaint / Problem Filter Bar */}
+                <div className="card border-0 mb-3 p-3 text-white rounded-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #0f2b5c 0%, #0d9488 100%)' }}>
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <div className="d-flex align-items-center gap-2 mb-1">
+                                <span style={{ fontSize: '1.4rem' }}>
+                                    {problemFilter === CLINICAL_PROBLEM_TYPES.CHEST ? '🫁' : problemFilter === CLINICAL_PROBLEM_TYPES.SPINE ? '🦴' : problemFilter === CLINICAL_PROBLEM_TYPES.ABDOMEN ? '🩺' : problemFilter === CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC ? '🩸' : '📋'}
+                                </span>
+                                <h5 className="mb-0 text-white fw-bold">
+                                    {problemFilter === CLINICAL_PROBLEM_TYPES.CHEST
+                                        ? 'Patient Clinical Problem: Chest & Respiratory (Chest Pain, Cough, Bronchitis)'
+                                        : problemFilter === CLINICAL_PROBLEM_TYPES.SPINE
+                                        ? 'Patient Clinical Problem: Spine & Orthopedic'
+                                        : problemFilter === CLINICAL_PROBLEM_TYPES.ABDOMEN
+                                        ? 'Patient Clinical Problem: Abdominal & Digestive'
+                                        : problemFilter === CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC
+                                        ? 'Patient Clinical Problem: Blood & Metabolic'
+                                        : 'All Patient Diagnostic Reports'}
+                                </h5>
+                                <Tag color="cyan">Clinically Matched</Tag>
+                            </div>
+                            <p className="mb-0 small text-light opacity-90">
+                                {problemFilter === CLINICAL_PROBLEM_TYPES.CHEST
+                                    ? 'Active Clinical Rule: Displaying ONLY diagnostic reports matching chest symptoms (Digital Chest X-Ray PA View, 12-Lead ECG). Non-chest modalities (Spine MRI, Abdominal Ultrasound) are filtered out.'
+                                    : problemFilter === CLINICAL_PROBLEM_TYPES.SPINE
+                                    ? 'Active Clinical Rule: Displaying ONLY spine/orthopedic reports (Lumbar Spine MRI).'
+                                    : problemFilter === CLINICAL_PROBLEM_TYPES.ABDOMEN
+                                    ? 'Active Clinical Rule: Displaying ONLY abdominal diagnostic reports (High-Resolution USG Abdomen).'
+                                    : problemFilter === CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC
+                                    ? 'Active Clinical Rule: Displaying ONLY hematology and metabolic panels (CBC with ESR, Lipid Profile).'
+                                    : 'Showing all diagnostic reports without clinical filtering.'}
+                            </p>
+                        </div>
+                        <div className="d-flex align-items-center gap-2">
+                            <span className="small text-white-50">Filter by Problem:</span>
+                            <Select
+                                value={problemFilter}
+                                onChange={setProblemFilter}
+                                style={{ width: 260 }}
+                            >
+                                <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest &amp; Respiratory</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine &amp; Orthopedic</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal &amp; Digestive</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="reports-filter-bar">
                     <Input
                         placeholder="Search your reports..."
@@ -679,10 +889,43 @@ const PatientReportsView = () => {
                     layout="vertical"
                     onFinish={handleCreateReport}
                     initialValues={{
-                        reportType: 'Blood Test',
+                        reportType: 'X-Ray',
                         reportDate: moment(),
                     }}
                 >
+                    <div className="p-3 mb-3 rounded border border-primary bg-light">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong className="text-primary">
+                                <FaHeartbeat className="me-1" /> My Chief Complaint / Problem:
+                            </strong>
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<FaMagic />}
+                                onClick={() => handleAutofillForProblem(selectedProblemInModal)}
+                            >
+                                Auto-Generate Report for this Problem
+                            </Button>
+                        </div>
+                        <Select
+                            value={selectedProblemInModal}
+                            onChange={(val) => {
+                                setSelectedProblemInModal(val);
+                                handleAutofillForProblem(val);
+                            }}
+                            style={{ width: '100%' }}
+                        >
+                            <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest Problem (Chest Pain, Cough, Bronchitis)</Option>
+                            <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine / Back Problem (Lumbar Stiffness, Sciatica)</Option>
+                            <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal Problem (Stomach, Gallbladder, Visceral)</Option>
+                            <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic (Fever, Infection, Lipids)</Option>
+                        </Select>
+                        <small className="text-muted d-block mt-1">
+                            {selectedProblemInModal === CLINICAL_PROBLEM_TYPES.CHEST
+                                ? 'Enforces clinical validity: Generates a verified Chest report (Chest X-Ray) with lung & cardiopulmonary observations.'
+                                : 'Ensures generated report matches your specified complaint.'}
+                        </small>
+                    </div>
                     <div className="row">
                         <div className="col-md-6">
                             <Form.Item
@@ -738,54 +981,11 @@ const PatientReportsView = () => {
             </Modal>
 
             {/* View Detail Modal */}
-            <Modal
-                title={selectedReport?.reportTitle}
+            <ClinicalReportViewer
+                report={selectedReport}
                 open={isDetailModalOpen}
-                onCancel={() => setIsDetailModalOpen(false)}
-                footer={[
-                    <Button key="close" onClick={() => setIsDetailModalOpen(false)}>Close</Button>
-                ]}
-                width={650}
-            >
-                {selectedReport && (
-                    <div>
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <Tag color={getTypeColor(selectedReport.reportType)}>
-                                {selectedReport.reportType}
-                            </Tag>
-                            <span className="text-muted small">
-                                {moment(selectedReport.reportDate).format('MMM DD, YYYY')}
-                            </span>
-                        </div>
-
-                        {selectedReport.doctor && (
-                            <div className="p-3 bg-light rounded mb-3">
-                                <strong>Consulting Doctor:</strong> Dr. {selectedReport.doctor.firstName} {selectedReport.doctor.lastName} ({selectedReport.doctor.specialization})
-                            </div>
-                        )}
-
-                        <div className="mb-3">
-                            <h6 className="fw-bold">Report Findings / Summary</h6>
-                            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                                {selectedReport.description || 'No detailed text notes recorded for this test.'}
-                            </p>
-                        </div>
-
-                        {selectedReport.fileUrl && (
-                            <div className="report-detail-preview">
-                                <h6 className="fw-bold mb-2">Scan Document</h6>
-                                {selectedReport.fileUrl.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) ? (
-                                    <img src={selectedReport.fileUrl} alt="Report Scan" />
-                                ) : (
-                                    <a href={selectedReport.fileUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline-primary btn-sm">
-                                        <FaDownload className="me-1" /> Open Document
-                                    </a>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </Modal>
+                onClose={() => setIsDetailModalOpen(false)}
+            />
         </div>
     );
 };

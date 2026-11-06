@@ -1,0 +1,489 @@
+/* ==========================================================================
+   Clinical Medical Report Document & Radiology Viewer Styling
+   ========================================================================== */
+
+.clinical-report-modal .ant-modal-content {
+	padding: 0 !important;
+	border-radius: 16px !important;
+	overflow: hidden !important;
+	background: #f8fafc !important;
+	box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+}
+
+.clinical-report-modal .ant-modal-header {
+	display: none !important;
+}
+
+.clinical-report-wrapper {
+	display: flex;
+	flex-direction: column;
+	max-height: 88vh;
+	background: #ffffff;
+}
+
+/* Modal action top toolbar */
+.clinical-report-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75rem 1.25rem;
+	background: #0f172a;
+	color: #ffffff;
+	border-bottom: 1px solid #1e293b;
+}
+
+.clinical-report-toolbar__title {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	font-size: 0.92rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.clinical-report-toolbar__actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* Scrollable Document Container */
+.clinical-report-sheet-container {
+	flex: 1;
+	overflow-y: auto;
+	padding: 1.5rem;
+	background: #f1f5f9;
+}
+
+/* Authentic A4 Hospital Letterhead Sheet */
+.clinical-report-sheet {
+	max-width: 800px;
+	margin: 0 auto;
+	background: #ffffff;
+	border: 1px solid #cbd5e1;
+	border-radius: 12px;
+	box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+	padding: 2.25rem 2.5rem;
+	color: #1e293b;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	position: relative;
+}
+
+/* Hospital Letterhead Header */
+.clinical-sheet-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	padding-bottom: 1.25rem;
+	border-bottom: 2px solid #0284c7;
+	margin-bottom: 1.25rem;
+}
+
+.clinical-facility-brand {
+	display: flex;
+	align-items: center;
+	gap: 0.85rem;
+}
+
+.clinical-facility-logo {
+	width: 52px;
+	height: 52px;
+	border-radius: 12px;
+	background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+	color: #ffffff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.8rem;
+	font-weight: 800;
+	box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.clinical-facility-name {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0 0 0.15rem;
+	letter-spacing: -0.02em;
+	text-transform: uppercase;
+}
+
+.clinical-facility-sub {
+	font-size: 0.76rem;
+	color: #0284c7;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	margin: 0;
+}
+
+.clinical-facility-addr {
+	font-size: 0.72rem;
+	color: #64748b;
+	margin: 0.2rem 0 0;
+}
+
+.clinical-sheet-accreditation {
+	text-align: right;
+}
+
+.clinical-barcode {
+	font-family: monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.18em;
+	background: #f8fafc;
+	padding: 0.2rem 0.5rem;
+	border: 1px solid #e2e8f0;
+	border-radius: 4px;
+	display: inline-block;
+	color: #334155;
+	font-weight: 700;
+}
+
+.clinical-sheet-meta {
+	font-size: 0.72rem;
+	color: #64748b;
+	margin-top: 0.35rem;
+}
+
+/* Patient & Study Demographics Box */
+.clinical-demographics-box {
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	padding: 0.85rem 1.15rem;
+	margin-bottom: 1.5rem;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 0.65rem 1rem;
+	font-size: 0.82rem;
+}
+
+.clinical-demo-item {
+	display: flex;
+	flex-direction: column;
+}
+
+.clinical-demo-label {
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #64748b;
+	margin-bottom: 0.15rem;
+}
+
+.clinical-demo-val {
+	font-weight: 600;
+	color: #0f172a;
+}
+
+/* Report Title Banner */
+.clinical-report-title-banner {
+	text-align: center;
+	padding: 0.5rem 1rem;
+	background: #f0f9ff;
+	border: 1px solid #bae6fd;
+	border-radius: 6px;
+	margin-bottom: 1.25rem;
+}
+
+.clinical-report-title-banner h3 {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 800;
+	color: #0369a1;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+
+.clinical-report-title-banner p {
+	margin: 0.15rem 0 0;
+	font-size: 0.75rem;
+	color: #0284c7;
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Radiology Film Workstation (PACS Lightbox Viewer)
+   ========================================================================== */
+
+.radiology-film-workstation {
+	background: #090d16;
+	border-radius: 10px;
+	border: 2px solid #1e293b;
+	overflow: hidden;
+	margin-bottom: 1.5rem;
+	box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+.radiology-workstation-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.45rem 0.85rem;
+	background: #111827;
+	border-bottom: 1px solid #1f2937;
+	color: #9ca3af;
+	font-size: 0.75rem;
+}
+
+.radiology-workstation-film {
+	position: relative;
+	width: 100%;
+	min-height: 380px;
+	max-height: 480px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #050811;
+	overflow: hidden;
+	padding: 0.5rem;
+}
+
+.radiology-film-img {
+	max-width: 100%;
+	max-height: 460px;
+	object-fit: contain;
+	display: block;
+	filter: contrast(1.15) brightness(1.05);
+	transition: filter 0.25s ease;
+	border-radius: 4px;
+}
+
+/* Inverted contrast mode for radiological bone inspection */
+.radiology-film-img--inverted {
+	filter: invert(1) contrast(1.25) brightness(0.95);
+}
+
+.radiology-marker {
+	position: absolute;
+	font-size: 1.5rem;
+	font-weight: 900;
+	color: rgba(255, 255, 255, 0.85);
+	text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+	pointer-events: none;
+	user-select: none;
+}
+
+.radiology-marker--r {
+	top: 15px;
+	right: 25px;
+}
+
+.radiology-marker--l {
+	top: 15px;
+	left: 25px;
+}
+
+.radiology-film-footer-meta {
+	padding: 0.35rem 0.85rem;
+	background: #111827;
+	border-top: 1px solid #1f2937;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 0.72rem;
+	color: #6b7280;
+}
+
+/* Structured Radiology Findings */
+.clinical-section-heading {
+	font-size: 0.82rem;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #0f172a;
+	padding-bottom: 0.35rem;
+	border-bottom: 1px solid #e2e8f0;
+	margin: 1.25rem 0 0.65rem;
+}
+
+.clinical-findings-grid {
+	display: grid;
+	gap: 0.65rem;
+	margin-bottom: 1.25rem;
+}
+
+.clinical-finding-row {
+	font-size: 0.85rem;
+	line-height: 1.55;
+	color: #334155;
+}
+
+.clinical-finding-row strong {
+	color: #0f172a;
+	font-weight: 700;
+}
+
+.clinical-impression-card {
+	background: #f0fdf4;
+	border: 1px solid #bbf7d0;
+	border-left: 4px solid #16a34a;
+	border-radius: 6px;
+	padding: 0.85rem 1.15rem;
+	margin: 1.25rem 0;
+}
+
+.clinical-impression-title {
+	font-size: 0.8rem;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #15803d;
+	margin-bottom: 0.35rem;
+}
+
+.clinical-impression-text {
+	margin: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: #14532d;
+	line-height: 1.5;
+}
+
+/* ==========================================================================
+   Laboratory Pathology Table Styling
+   ========================================================================== */
+
+.clinical-lab-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1rem 0 1.5rem;
+	font-size: 0.84rem;
+}
+
+.clinical-lab-table th {
+	background: #f8fafc;
+	color: #475569;
+	font-weight: 700;
+	text-transform: uppercase;
+	font-size: 0.72rem;
+	letter-spacing: 0.05em;
+	padding: 0.65rem 0.85rem;
+	border-top: 1px solid #cbd5e1;
+	border-bottom: 2px solid #cbd5e1;
+	text-align: left;
+}
+
+.clinical-lab-table td {
+	padding: 0.6rem 0.85rem;
+	border-bottom: 1px solid #f1f5f9;
+	color: #334155;
+}
+
+.clinical-lab-table tr:hover {
+	background: #f8fafc;
+}
+
+.clinical-lab-table .param-name {
+	font-weight: 600;
+	color: #0f172a;
+}
+
+.clinical-lab-table .param-val {
+	font-weight: 700;
+}
+
+/* Doctor Comments & Clinical Correlation Box */
+.clinical-comments-box {
+	background: #fffbeb;
+	border: 1px solid #fde68a;
+	border-radius: 6px;
+	padding: 0.75rem 1rem;
+	margin-bottom: 1.25rem;
+	font-size: 0.82rem;
+	color: #92400e;
+}
+
+/* Doctor & Pathologist Sign-off */
+.clinical-signatures-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	margin-top: 2rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid #cbd5e1;
+}
+
+.clinical-signature-block {
+	text-align: center;
+	min-width: 200px;
+}
+
+.clinical-digital-stamp {
+	display: inline-block;
+	border: 1px dashed #0284c7;
+	background: rgba(2, 132, 199, 0.05);
+	padding: 0.25rem 0.65rem;
+	border-radius: 4px;
+	font-size: 0.68rem;
+	font-weight: 700;
+	color: #0284c7;
+	text-transform: uppercase;
+	margin-bottom: 0.4rem;
+}
+
+.clinical-sign-name {
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0;
+}
+
+.clinical-sign-title {
+	font-size: 0.72rem;
+	color: #64748b;
+	margin: 0;
+}
+
+/* Sheet Footer */
+.clinical-sheet-footer {
+	text-align: center;
+	font-size: 0.68rem;
+	color: #94a3b8;
+	margin-top: 2rem;
+	padding-top: 0.85rem;
+	border-top: 1px solid #f1f5f9;
+}
+
+/* Print Optimization */
+@media print {
+	body * {
+		visibility: hidden;
+	}
+
+	.clinical-report-sheet,
+	.clinical-report-sheet * {
+		visibility: visible;
+	}
+
+	.clinical-report-sheet {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100% !important;
+		max-width: 100% !important;
+		box-shadow: none !important;
+		border: none !important;
+		padding: 0 !important;
+		margin: 0 !important;
+	}
+
+	.clinical-report-toolbar,
+	.radiology-workstation-bar,
+	.radiology-film-footer-meta,
+	.ant-btn {
+		display: none !important;
+	}
+
+	.radiology-film-workstation {
+		border: 1px solid #000 !important;
+		background: #fff !important;
+	}
+
+	.radiology-film-img {
+		max-height: 380px !important;
+	}
+}
+

@@ -23,6 +23,13 @@ import {
     Typography,
     Divider,
 } from 'antd';
+import ClinicalReportViewer from './ClinicalReportViewer';
+import {
+    CLINICAL_PROBLEMS,
+    CLINICAL_PROBLEM_TYPES,
+    filterReportsByProblem,
+    getGeneratorTemplateForProblem,
+} from '../../../utils/clinicalProblemMatcher';
 import {
     FaVial,
     FaPlus,
@@ -33,6 +40,8 @@ import {
     FaUpload,
     FaFilePdf,
     FaFileImage,
+    FaHeartbeat,
+    FaMagic,
 } from 'react-icons/fa';
 import moment from 'moment';
 
@@ -50,15 +59,18 @@ const LabReports = () => {
     const [previewDoc, setPreviewDoc] = useState(null);
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
+    const [activeProblem, setActiveProblem] = useState(CLINICAL_PROBLEM_TYPES.ALL);
+    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC);
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState([]);
 
     const allReports = reportsData?.data || reportsData || [];
 
     // Filter specifically to lab reports
-    const labReports = useMemo(() => {
+    const baseLabReports = useMemo(() => {
         return allReports.filter((r) => {
             const isLab = r.category === 'LAB' ||
+                r.category === 'LABORATORY' ||
                 ['blood', 'sugar', 'glucose', 'cbc', 'lipid', 'cholesterol', 'thyroid', 'urine', 'lft', 'kft', 'creatinine', 'electrolyte', 'vitamin', 'biochemistry', 'pathology']
                     .some((k) => (r.reportType || '').toLowerCase().includes(k) || (r.reportTitle || '').toLowerCase().includes(k));
 
@@ -81,6 +93,28 @@ const LabReports = () => {
             return true;
         });
     }, [allReports, search, categoryFilter]);
+
+    const labReports = useMemo(() => {
+        if (activeProblem === CLINICAL_PROBLEM_TYPES.ALL) return baseLabReports;
+        return filterReportsByProblem(baseLabReports, activeProblem);
+    }, [baseLabReports, activeProblem]);
+
+    const handleAutofillForProblem = (problemKey) => {
+        const template = getGeneratorTemplateForProblem(problemKey);
+        form.setFieldsValue({
+            patientProblem: problemKey,
+            reportTitle: template.reportTitle,
+            reportType: template.reportType,
+            hospitalOrLab: template.hospitalOrLab,
+            description: template.description,
+            doctorComments: template.doctorComments,
+            fileUrl: template.fileUrl,
+            fileName: template.fileName,
+            testDate: moment(),
+            reportDate: moment(),
+        });
+        message.success(`Clinical template loaded for: ${template.reportTitle}`);
+    };
 
     const handleUploadSubmit = async (values) => {
         try {
@@ -367,48 +401,11 @@ const LabReports = () => {
                 </Modal>
 
                 {/* Document Preview Modal */}
-                <Modal
-                    title={previewDoc?.reportTitle || 'Lab Report Preview'}
+                <ClinicalReportViewer
+                    report={previewDoc}
                     open={Boolean(previewDoc)}
-                    onCancel={() => setPreviewDoc(null)}
-                    footer={[
-                        <a key="download" href={previewDoc?.fileUrl} download={previewDoc?.fileName || 'lab-report'} target="_blank" rel="noreferrer">
-                            <Button icon={<FaDownload />}>Download</Button>
-                        </a>,
-                        <Button key="close" type="primary" onClick={() => setPreviewDoc(null)}>
-                            Close
-                        </Button>
-                    ]}
-                    width={750}
-                >
-                    {previewDoc && (
-                        <div className="text-center py-2">
-                            {previewDoc.fileUrl?.toLowerCase().endsWith('.pdf') ? (
-                                <iframe
-                                    src={previewDoc.fileUrl}
-                                    title="PDF Document Preview"
-                                    width="100%"
-                                    height="500px"
-                                    style={{ border: 'none' }}
-                                />
-                            ) : (
-                                <img
-                                    src={previewDoc.fileUrl}
-                                    alt="Medical Report"
-                                    style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
-                                    className="rounded shadow-sm"
-                                />
-                            )}
-                            <div className="mt-3 text-start bg-light p-3 rounded">
-                                <strong>{previewDoc.reportTitle}</strong> ({previewDoc.reportType})
-                                <div className="text-muted small">
-                                    Laboratory: {previewDoc.hospitalOrLab || 'Diagnostic Pathology Lab'} · Date: {moment(previewDoc.testDate || previewDoc.reportDate).format('LL')}
-                                </div>
-                                {previewDoc.description && <p className="mt-2 mb-0 small">{previewDoc.description}</p>}
-                            </div>
-                        </div>
-                    )}
-                </Modal>
+                    onClose={() => setPreviewDoc(null)}
+                />
             </div>
         </DashboardLayout>
     );

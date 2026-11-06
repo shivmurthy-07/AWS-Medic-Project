@@ -169,7 +169,37 @@ const createAppointment = async (payload: any, user: any): Promise<Appointments 
             },
             include: {
                 doctor: true,
-                patient: true
+                patient: true,
+            medicalReports: {
+                include: {
+                    doctor: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                            phone: true,
+                            specialization: true,
+                            designation: true,
+                            registration: true,
+                            hospitalName: true,
+                            clinicName: true,
+                        }
+                    },
+                    patient: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                            mobile: true,
+                            gender: true,
+                            dateOfBirth: true,
+                            bloodGroup: true,
+                        }
+                    }
+                }
+            }
             }
         });
         const { paymentMethod, paymentType } = payment;
@@ -327,9 +357,55 @@ const getAppointment = async (id: string, user: any) => {
         },
         include: {
             doctor: {
-                select: { id: true, firstName: true, lastName: true, email: true, phone: true, img: true }
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    phone: true,
+                    img: true,
+                    specialization: true,
+                    designation: true,
+                    college: true,
+                    clinicName: true,
+                    clinicAddress: true,
+                    city: true,
+                    state: true,
+                    hospitalName: true,
+                    hospitalAddress: true,
+                }
             },
-            patient: true
+            patient: true,
+            medicalReports: {
+                include: {
+                    doctor: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                            phone: true,
+                            specialization: true,
+                            designation: true,
+                            registration: true,
+                            hospitalName: true,
+                            clinicName: true,
+                        }
+                    },
+                    patient: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                            mobile: true,
+                            gender: true,
+                            dateOfBirth: true,
+                            bloodGroup: true,
+                        }
+                    }
+                }
+            }
         }
     });
     if (!result) {
@@ -618,6 +694,36 @@ const getDoctorAppointmentsById = async (user: any, filter: any): Promise<Appoin
         where: whereConditions,
         include: {
             patient: true,
+            medicalReports: {
+                include: {
+                    doctor: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                            phone: true,
+                            specialization: true,
+                            designation: true,
+                            registration: true,
+                            hospitalName: true,
+                            clinicName: true,
+                        }
+                    },
+                    patient: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                            mobile: true,
+                            gender: true,
+                            dateOfBirth: true,
+                            bloodGroup: true,
+                        }
+                    }
+                }
+            },
             prescription: {
                 select: {
                     id: true
@@ -628,36 +734,119 @@ const getDoctorAppointmentsById = async (user: any, filter: any): Promise<Appoin
     return result;
 }
 
-const getDoctorPatients = async (user: any): Promise<Patient[]> => {
+const getDoctorPatients = async (user: any): Promise<any[]> => {
     const { userId } = user;
     const isDoctor = await prisma.doctor.findUnique({
         where: {
             id: userId
         }
-    })
+    });
     if (!isDoctor) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Doctor Account is not found !!')
+        throw new ApiError(httpStatus.NOT_FOUND, 'Doctor Account is not found !!');
     }
 
-    const patients = await prisma.appointments.findMany({
+    // Strictly fetch appointments taken with this specific doctor only
+    const doctorAppointments = await prisma.appointments.findMany({
         where: {
             doctorId: userId
         },
-        distinct: ['patientId']
-    });
-
-    //extract patients from the appointments table
-    const patientIds = patients.map(appointment => appointment.patientId).filter(Boolean);
-    const patientList = await prisma.patient.findMany({
-        where: {
-            id: {
-                // @ts-ignore
-                in: patientIds
+        orderBy: {
+            scheduleDate: 'desc'
+        },
+        include: {
+            patient: true,
+            prescription: {
+                select: {
+                    id: true,
+                    disease: true,
+                    createdAt: true
+                }
+            },
+            medicalReports: {
+                select: {
+                    id: true,
+                    reportTitle: true,
+                    reportType: true,
+                    reportDate: true
+                }
             }
         }
-    })
-    return patientList;
-}
+    });
+
+    if (!doctorAppointments.length) {
+        return [];
+    }
+
+    // Group strictly by patient who has taken an appointment with this specific doctor
+    const patientMap = new Map<string, any>();
+
+    for (const apt of doctorAppointments) {
+        const patientKey = apt.patientId || (apt.email ? apt.email.trim().toLowerCase() : apt.id);
+
+        if (!patientMap.has(patientKey)) {
+            const basePatient = apt.patient;
+            const patientRecord = {
+                id: basePatient?.id || apt.patientId || apt.id,
+                patientId: basePatient?.id || apt.patientId || null,
+                firstName: basePatient?.firstName || apt.firstName || 'Patient',
+                lastName: basePatient?.lastName || apt.lastName || '',
+                email: basePatient?.email || apt.email || 'N/A',
+                mobile: basePatient?.mobile || apt.phone || 'N/A',
+                address: basePatient?.address || apt.address || 'N/A',
+                city: basePatient?.city || '',
+                state: basePatient?.state || '',
+                country: basePatient?.country || 'India',
+                bloodGroup: basePatient?.bloodGroup || null,
+                dateOfBirth: basePatient?.dateOfBirth || null,
+                gender: basePatient?.gender || null,
+                img: basePatient?.img || null,
+                trackingId: apt.trackingId,
+                appointmentTime: apt.scheduleDate,
+                scheduleDate: apt.scheduleDate,
+                scheduleTime: apt.scheduleTime,
+                reasonForVisit: apt.reasonForVisit || apt.description || 'Clinical Consultation',
+                status: apt.status,
+                prescriptionStatus: apt.prescriptionStatus || (apt.prescription && apt.prescription.length > 0 ? 'issued' : 'notIssued'),
+                totalAppointments: 1,
+                appointments: [
+                    {
+                        id: apt.id,
+                        trackingId: apt.trackingId,
+                        scheduleDate: apt.scheduleDate,
+                        scheduleTime: apt.scheduleTime,
+                        reasonForVisit: apt.reasonForVisit,
+                        description: apt.description,
+                        status: apt.status,
+                        prescriptionStatus: apt.prescriptionStatus,
+                        prescription: apt.prescription,
+                        medicalReports: apt.medicalReports
+                    }
+                ]
+            };
+            patientMap.set(patientKey, patientRecord);
+        } else {
+            const existing = patientMap.get(patientKey);
+            existing.totalAppointments += 1;
+            existing.appointments.push({
+                id: apt.id,
+                trackingId: apt.trackingId,
+                scheduleDate: apt.scheduleDate,
+                scheduleTime: apt.scheduleTime,
+                reasonForVisit: apt.reasonForVisit,
+                description: apt.description,
+                status: apt.status,
+                prescriptionStatus: apt.prescriptionStatus,
+                prescription: apt.prescription,
+                medicalReports: apt.medicalReports
+            });
+            if (apt.prescriptionStatus === 'issued' || (apt.prescription && apt.prescription.length > 0)) {
+                existing.prescriptionStatus = 'issued';
+            }
+        }
+    }
+
+    return Array.from(patientMap.values());
+};
 
 const updateAppointmentByDoctor = async (user: any, payload: Partial<Appointments>): Promise<Appointments | null> => {
     const { userId } = user;

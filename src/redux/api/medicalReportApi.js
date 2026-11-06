@@ -27,6 +27,13 @@ export const medicalReportApi = baseApi.injectEndpoints({
             }),
             providesTags: [tagTypes.reports]
         }),
+        getReportsByAppointment: build.query({
+            query: (appointmentId) => ({
+                url: `${REPORT_URL}/appointment/${appointmentId}`,
+                method: 'GET'
+            }),
+            providesTags: [tagTypes.reports, tagTypes.appointments]
+        }),
         getSingleReport: build.query({
             query: (id) => ({
                 url: `${REPORT_URL}/${id}`,
@@ -50,7 +57,7 @@ export const medicalReportApi = baseApi.injectEndpoints({
                 method: 'POST',
                 data: data
             }),
-            invalidatesTags: [tagTypes.reports]
+            invalidatesTags: [tagTypes.reports, tagTypes.appointments]
         }),
         updateMedicalReport: build.mutation({
             query: ({ id, data }) => ({
@@ -74,6 +81,7 @@ export const {
     useGetDoctorReportsQuery,
     useGetPatientReportsQuery,
     useGetPatientReportsByDoctorQuery,
+    useGetReportsByAppointmentQuery,
     useGetSingleReportQuery,
     useUploadReportFileMutation,
     useCreateMedicalReportMutation,

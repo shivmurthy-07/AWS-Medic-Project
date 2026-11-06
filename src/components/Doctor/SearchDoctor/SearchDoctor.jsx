@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Footer from '../../Shared/Footer/Footer';
 import SearchSidebar from './SearchSidebar';
 import SearchContent from './SearchContent';
@@ -10,14 +11,36 @@ import SubHeader from '../../Shared/SubHeader';
 import './SearchDoctor.css';
 
 const SearchDoctor = () => {
+	const location = useLocation();
+	const getInitialParam = (param) => {
+		try {
+			const params = new URLSearchParams(location.search);
+			return params.get(param) || '';
+		} catch (e) {
+			return '';
+		}
+	};
+
 	const [page, setPage] = useState(1);
 	const [size, setSize] = useState(10);
 	const [sortBy, setSortBy] = useState('');
 	const [sortOrder, setSortOrder] = useState('');
-	const [searchTerm, setSearchTerm] = useState('');
+	const [searchTerm, setSearchTerm] = useState(() => getInitialParam('searchTerm') || getInitialParam('search'));
 	const [sortByGender, setSortByGender] = useState('');
-	const [specialist, setSpecialist] = useState('');
+	const [specialist, setSpecialist] = useState(() => getInitialParam('specialist'));
 	const [priceRange, setPriceRange] = useState({});
+
+	useEffect(() => {
+		const params = new URLSearchParams(location.search);
+		const spec = params.get('specialist');
+		const search = params.get('searchTerm') || params.get('search');
+		if (spec !== null && spec !== undefined) {
+			setSpecialist(spec);
+		}
+		if (search !== null && search !== undefined) {
+			setSearchTerm(search);
+		}
+	}, [location.search]);
 
 	const query = {
 		limit: size,

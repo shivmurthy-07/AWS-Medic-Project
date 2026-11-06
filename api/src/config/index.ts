@@ -7,9 +7,12 @@ const workingEnvPath = path.resolve(process.cwd(), '.env');
 dotenv.config({ path: fs.existsSync(apiEnvPath) ? apiEnvPath : workingEnvPath });
 
 const isDevelopment = process.env.NODE_ENV === 'development';
-const clientUrl = isDevelopment
-    ? process.env.CLIENT_LOCAL_URL || process.env.CLIENT__LOCAL_URL || 'http://localhost:3000'
-    : process.env.CLIENT_URL;
+const clientUrl =
+    process.env.FRONTEND_URL ||
+    (isDevelopment
+        ? process.env.CLIENT_LOCAL_URL || process.env.CLIENT__LOCAL_URL || 'http://localhost:3000'
+        : process.env.CLIENT_URL) ||
+    'http://localhost:3000';
 
 const showErrorDetails =
     process.env.NODE_ENV !== 'production' ||
@@ -22,6 +25,7 @@ export default {
     port: process.env.PORT || '5050',
     default_doctor_pass: process.env.DOCTOR_PASS,
     clientUrl: clientUrl,
+    frontendUrl: clientUrl,
     jwt: {
         secret: process.env.JWT_SECRET || process.env.JWT_SCRET,
         JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRED_IN,

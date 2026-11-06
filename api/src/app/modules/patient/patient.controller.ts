@@ -26,10 +26,7 @@ const getAllPatients = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getPatient = catchAsync(async (req: Request, res: Response) => {
-    if (req.user?.role !== 'admin' && req.user?.userId !== req.params.id) {
-        throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorised to access this patient.');
-    }
-    const result = await PatientService.getPatient(req.params.id);
+    const result = await PatientService.getPatient(req.params.id, req.user);
     sendResponse<Patient>(res, {
         statusCode: 200,
         message: 'Successfully Get Patient !!',

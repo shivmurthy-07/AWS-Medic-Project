@@ -43,6 +43,27 @@ export const authApi = baseApi.injectEndpoints({
                 data,
             }),
         }),
+        forgotPassword: build.mutation({
+            query: (data) => ({
+                url: `${AUTH_URL}/forgot-password`,
+                method: 'POST',
+                data,
+            }),
+        }),
+        validateResetToken: build.mutation({
+            query: (data) => ({
+                url: `${AUTH_URL}/validate-reset-token`,
+                method: 'POST',
+                data,
+            }),
+        }),
+        resetPasswordWithToken: build.mutation({
+            query: (data) => ({
+                url: `${AUTH_URL}/reset-password`,
+                method: 'POST',
+                data,
+            }),
+        }),
         resetConfirm: build.mutation({
             query: (data) => ({
                 url: `${AUTH_URL}/reset-password/confirm`,
@@ -65,6 +86,9 @@ export const {
     useDoctorSignUpMutation, 
     usePatientSignUpMutation,
     useResetPasswordMutation, 
+    useForgotPasswordMutation,
+    useValidateResetTokenMutation,
+    useResetPasswordWithTokenMutation,
     useResetConfirmMutation,
     useChangePasswordMutation
 } = authApi

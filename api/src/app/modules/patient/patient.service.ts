@@ -18,8 +18,21 @@ const getAllPatients = async (): Promise<Patient[] | null> => {
     return result;
 }
 
-const getPatient = async (id: string): Promise<Patient | null> => {
+const getPatient = async (id: string, user?: any): Promise<Patient | null> => {
     id = validatePayload(uuidSchema, id);
+    if (user?.role === 'doctor') {
+        const hasAppointment = await prisma.appointments.findFirst({
+            where: {
+                doctorId: user.userId,
+                patientId: id
+            }
+        });
+        if (!hasAppointment) {
+            throw new ApiError(httpStatus.FORBIDDEN, 'You can only access details of patients who have booked an appointment with you.');
+        }
+    } else if (user && user.role !== 'admin' && user.role !== 'super_admin' && user.userId !== id) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorised to access this patient.');
+    }
     const result = await prisma.patient.findUnique({
         where: {
             id: id

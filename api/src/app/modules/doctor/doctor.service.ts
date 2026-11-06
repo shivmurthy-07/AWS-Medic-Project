@@ -136,11 +136,18 @@ const getAllDoctors = async (filters: unknown, options: unknown): Promise<IGener
 
     if (specialist) {
         andCondition.push({
-            AND: ({
-                services: {
-                    contains: specialist
+            OR: [
+                {
+                    services: {
+                        contains: specialist
+                    }
+                },
+                {
+                    specialization: {
+                        contains: specialist
+                    }
                 }
-            })
+            ]
         })
     }
 

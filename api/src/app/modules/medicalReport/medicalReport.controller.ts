@@ -99,11 +99,22 @@ const updateReport = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getReportsByAppointment = catchAsync(async (req: Request, res: Response) => {
+    const result = await MedicalReportService.getReportsByAppointment(req.params.appointmentId, req.user);
+    sendResponse(res, {
+        statusCode: 200,
+        message: 'Appointment medical reports retrieved successfully',
+        success: true,
+        data: result
+    });
+});
+
 export const MedicalReportController = {
     createReport,
     getDoctorReports,
     getPatientReports,
     getPatientReportsByDoctor,
+    getReportsByAppointment,
     getSingleReport,
     deleteReport,
     updateReport,

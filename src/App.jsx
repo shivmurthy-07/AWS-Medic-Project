@@ -39,6 +39,8 @@ import Reports from './components/Doctor/Reports/Reports';
 import TreatmentEdit from './components/Doctor/Treatment/TreatmentEdit';
 import ViewAppointment from './components/Doctor/Appointments/ViewAppointment';
 import ForgotPassword from './components/Login/ForgotPassword';
+import ForgotPasswordPage from './components/Login/ForgotPasswordPage';
+import ResetPasswordPage from './components/Login/ResetPasswordPage';
 import Dashboard from './components/Doctor/Dashboard/Dashboard';
 import PatientProfileView from './components/Patient/PatientProfileView';
 import MedicalHistory from './components/Patient/MedicalRecords/MedicalHistory';
@@ -94,7 +96,9 @@ function AppRoutes() {
         <Route path='/contact' element={<Contact />} />
         <Route path='/about' element={<About />} />
         <Route path='/service' element={<Service />} />
-        <Route path='/reset-password/:userId/:uniqueString' element={<ForgotPassword />} />
+        <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+        <Route path='/reset-password' element={<ResetPasswordPage />} />
+        <Route path='/reset-password/:userId/:uniqueString' element={<ResetPasswordPage />} />
         <Route path='/appointment' element={<AppointmentPage />} />
         <Route path='/track-appointment' element={<TrackAppointment />} />
         <Route path='/doctors' element={<SearchDoctor />} />

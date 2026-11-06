@@ -29,15 +29,61 @@ const Login = catchAsync(async (req: Request, res: Response) => {
         data: result,
     })
 })
-const resetPassword = catchAsync(async (req: Request, res: Response) => {
-    const result = await AuthService.resetPassword(req.body);
+
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+    const result = await AuthService.forgotPassword(req.body);
     sendResponse(res, {
         statusCode: 200,
-        message: 'Successfully Passwrod Reset!!',
+        message: result.message || 'If your email is registered, you will receive a password reset link shortly. Please check your inbox.',
         success: true,
         data: result,
-    })
-})
+    });
+});
+
+const validateResetToken = catchAsync(async (req: Request, res: Response) => {
+    const result = await AuthService.validateResetToken(req.body);
+    sendResponse(res, {
+        statusCode: 200,
+        message: result.message || 'Token is valid.',
+        success: true,
+        data: result,
+    });
+});
+
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+    // If request contains token and password, reset with token (preferred workflow)
+    if (req.body?.token && req.body?.password) {
+        const result = await AuthService.resetPasswordWithToken(req.body);
+        sendResponse(res, {
+            statusCode: 200,
+            message: result.message || 'Your password has been reset successfully. You can now log in using your new password.',
+            success: true,
+            data: result,
+        });
+        return;
+    }
+
+    // If request contains email only, forward to forgotPassword (legacy alias)
+    if (req.body?.email && !req.body?.password) {
+        const result = await AuthService.forgotPassword(req.body);
+        sendResponse(res, {
+            statusCode: 200,
+            message: result.message,
+            success: true,
+            data: result,
+        });
+        return;
+    }
+
+    // Legacy support for reset password confirm
+    const result = await AuthService.PassworResetConfirm(req.body);
+    sendResponse(res, {
+        statusCode: 200,
+        message: 'Successfully Password Changed!!',
+        success: true,
+        data: result,
+    });
+});
 
 const PasswordResetConfirm = catchAsync(async (req: Request, res: Response) => {
     const result = await AuthService.PassworResetConfirm(req.body);
@@ -134,6 +180,8 @@ export const AuthController = {
     VerifyUser,
     Verified,
     VerficationExpired,
+    forgotPassword,
+    validateResetToken,
     resetPassword,
     PasswordResetConfirm,
     Logout,

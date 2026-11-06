@@ -19,7 +19,7 @@ router.put('/:id/medical-history',
     PatientController.updateMedicalHistory
 );
 
-router.get('/:id', auth(AuthUser.PATIENT, AuthUser.ADMIN, AuthUser.SUPER_ADMIN), ownerOrAdmin(), PatientController.getPatient);
+router.get('/:id', auth(AuthUser.PATIENT, AuthUser.DOCTOR, AuthUser.ADMIN, AuthUser.SUPER_ADMIN), PatientController.getPatient);
 router.delete('/:id', auth(AuthUser.ADMIN, AuthUser.SUPER_ADMIN), PatientController.deletePatient);
 router.patch('/:id',
     auth(AuthUser.PATIENT, AuthUser.ADMIN, AuthUser.SUPER_ADMIN),

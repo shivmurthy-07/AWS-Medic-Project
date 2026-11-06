@@ -17,7 +17,18 @@ export const loginSchema = z.object({
 }).strict();
 
 export const resetPasswordSchema = z.object({
-    email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+    email: z.string().trim().email('Enter a valid email address').max(254).transform((email) => email.toLowerCase()),
+}).strict();
+
+export const forgotPasswordSchema = resetPasswordSchema;
+
+export const validateResetTokenSchema = z.object({
+    token: z.string().trim().min(1, 'Reset token is required').max(256),
+}).strict();
+
+export const resetPasswordWithTokenSchema = z.object({
+    token: z.string().trim().min(1, 'Reset token is required').max(256),
+    password: z.string().refine(isValidPassword, 'Password must be 8 to 128 characters and include uppercase, lowercase, a number, and a symbol'),
 }).strict();
 
 export const passwordResetConfirmSchema = z.object({

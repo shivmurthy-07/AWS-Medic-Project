@@ -150,8 +150,18 @@ const MyPatients = () => {
             title: 'Last Visit Date',
             dataIndex: 'appointmentTime',
             key: 'lastVisit',
-            render: (date) => (date ? moment(date).format('MMM DD, YYYY') : 'Recent Visit'),
+            render: (date) => (date ? moment(date).format('MMM DD, YYYY') : 'N/A'),
             sorter: (a, b) => moment(a.appointmentTime).unix() - moment(b.appointmentTime).unix(),
+        },
+        {
+            title: 'Consultations With You',
+            key: 'appointmentsCount',
+            render: (_, record) => (
+                <div>
+                    <Tag color="geekblue">{record?.totalAppointments || 1} Consultation{record?.totalAppointments > 1 ? 's' : ''}</Tag>
+                    <div className="text-muted small mt-1">Latest: #{record?.trackingId}</div>
+                </div>
+            ),
         },
         {
             title: 'Address',
@@ -229,7 +239,7 @@ const MyPatients = () => {
                     <div>
                         <h3 className="dashboard-card-title mb-1">My Patients &amp; Patient Care Data</h3>
                         <p className="text-muted small mb-0">
-                            Search patient records by name or contact and feed consultation notes, advice, and appointment details.
+                            Showing patients who have booked consultation appointments with you. View their visit records, contact info, and feed clinical advice.
                         </p>
                     </div>
                 </div>
@@ -348,6 +358,40 @@ const MyPatients = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {selectedPatient?.appointments && selectedPatient.appointments.length > 0 && (
+                            <div className="mt-4 pt-3 border-top">
+                                <h6 className="fw-bold text-primary mb-2">
+                                    <FaClipboardList className="me-2" />
+                                    Consultations Taken With You ({selectedPatient.appointments.length})
+                                </h6>
+                                <div className="d-flex flex-column gap-2">
+                                    {selectedPatient.appointments.map((apt, idx) => (
+                                        <div key={apt.id || idx} className="p-3 rounded bg-light border">
+                                            <div className="d-flex justify-content-between align-items-center mb-1">
+                                                <span className="fw-semibold text-dark">#{apt.trackingId}</span>
+                                                <Tag color={apt.status === 'Completed' ? 'success' : apt.status === 'pending' ? 'gold' : 'blue'}>
+                                                    {apt.status === 'Completed' ? 'Done' : apt.status || 'Scheduled'}
+                                                </Tag>
+                                            </div>
+                                            <div className="text-muted small">
+                                                <strong>Date &amp; Time:</strong> {moment(apt.scheduleDate).format('MMMM DD, YYYY')} at {apt.scheduleTime}
+                                            </div>
+                                            {apt.reasonForVisit && (
+                                                <div className="small text-secondary mt-1">
+                                                    <strong>Chief Complaint:</strong> {apt.reasonForVisit}
+                                                </div>
+                                            )}
+                                            {apt.description && (
+                                                <div className="small text-muted mt-1">
+                                                    <strong>Notes/Advice:</strong> {apt.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </Modal>

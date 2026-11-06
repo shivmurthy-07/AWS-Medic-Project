@@ -112,9 +112,9 @@ const DashboardSidebar = () => {
                     <div className="dashboard-nav-divider" />
                     
                     <li>
-                        <NavLink to="/dashboard/profile-setting">
-                            <span className="icon"><FaUserCog /></span>
-                            <span>Settings</span>
+                        <NavLink to={role === 'doctor' ? "/dashboard/profile-setting" : "/dashboard/my-profile"}>
+                            <span className="icon">{role === 'doctor' ? <FaUserCog /> : <FaUserInjured />}</span>
+                            <span>{role === 'doctor' ? "Doctor Profile Settings" : "My Patient Profile"}</span>
                         </NavLink>
                     </li>
                     <li>

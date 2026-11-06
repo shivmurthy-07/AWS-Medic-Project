@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../DashboardLayout/DashboardLayout';
-import { Table, Tag, Button, Input, Select, DatePicker, Space, Modal, message, Card, Popconfirm, Avatar, Tooltip } from 'antd';
+import { Table, Tag, Button, Input, Select, DatePicker, Space, Modal, message, Card, Popconfirm, Avatar, Tooltip, Form } from 'antd';
 import {
     FaEye,
     FaCheck,
@@ -11,13 +11,23 @@ import {
     FaUserTimes,
     FaCalendarCheck,
     FaUserMd,
-    FaFilePrescription
+    FaFilePrescription,
+    FaFileMedical,
+    FaPlus,
+    FaMagic,
 } from 'react-icons/fa';
 import {
     useGetDoctorAppointmentsQuery,
     useGetPatientAppointmentsQuery,
     useUpdateAppointmentMutation
 } from '../../../redux/api/appointmentApi';
+import { useCreateMedicalReportMutation } from '../../../redux/api/medicalReportApi';
+import ClinicalReportViewer from '../../Patient/MedicalRecords/ClinicalReportViewer';
+import {
+    detectProblemCategory,
+    getGeneratorTemplateForProblem,
+    CLINICAL_PROBLEM_TYPES,
+} from '../../../utils/clinicalProblemMatcher';
 import useAuthCheck from '../../../redux/hooks/useAuthCheck';
 import moment from 'moment';
 import { Link } from 'react-router-dom';
@@ -44,6 +54,14 @@ const DoctorAppointmentsTable = () => {
 
     const { data, isLoading, refetch } = useGetDoctorAppointmentsQuery({});
     const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
+    const [createReport, { isLoading: isGeneratingReport }] = useCreateMedicalReportMutation();
+
+    const [selectedAppointmentForReport, setSelectedAppointmentForReport] = useState(null);
+    const [isGenerateReportModalOpen, setIsGenerateReportModalOpen] = useState(false);
+    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
+    const [previewReport, setPreviewReport] = useState(null);
+    const [isReportViewerOpen, setIsReportViewerOpen] = useState(false);
+    const [reportForm] = Form.useForm();
 
     const appointments = data || [];
 
@@ -95,6 +113,79 @@ const DoctorAppointmentsTable = () => {
         }
     };
 
+    const handleOpenGenerateModal = (appointment) => {
+        setSelectedAppointmentForReport(appointment);
+        const fullProblemText = `${appointment.reasonForVisit || ''} ${appointment.description || ''}`;
+        const detected = detectProblemCategory(fullProblemText);
+        setSelectedProblemInModal(detected);
+        const template = getGeneratorTemplateForProblem(detected);
+
+        reportForm.setFieldsValue({
+            problemType: detected,
+            reportTitle: template.reportTitle,
+            reportType: template.reportType,
+            category: template.category,
+            hospitalOrLab: template.hospitalOrLab || 'Apex Radio-Diagnostic & Imaging Center',
+            description: `${template.description}\n\nChief Complaint for Consultation: ${appointment.reasonForVisit || 'Clinical consultation'} (Appointment #${appointment.trackingId})`,
+            doctorComments: template.doctorComments,
+            findingsText: template.findingsText,
+            fileUrl: template.fileUrl,
+            fileName: template.fileName,
+            status: 'completed',
+        });
+        setIsGenerateReportModalOpen(true);
+    };
+
+    const handleProblemChangeInModal = (problemKey) => {
+        setSelectedProblemInModal(problemKey);
+        const template = getGeneratorTemplateForProblem(problemKey);
+        reportForm.setFieldsValue({
+            problemType: problemKey,
+            reportTitle: template.reportTitle,
+            reportType: template.reportType,
+            category: template.category,
+            hospitalOrLab: template.hospitalOrLab || 'Apex Radio-Diagnostic & Imaging Center',
+            description: `${template.description}\n\nChief Complaint for Consultation: ${selectedAppointmentForReport?.reasonForVisit || 'Clinical consultation'} (Appointment #${selectedAppointmentForReport?.trackingId})`,
+            doctorComments: template.doctorComments,
+            findingsText: template.findingsText,
+            fileUrl: template.fileUrl,
+            fileName: template.fileName,
+            status: 'completed',
+        });
+    };
+
+    const handleSaveReportForAppointment = async (values) => {
+        if (!selectedAppointmentForReport?.patientId) {
+            message.warning('This appointment does not have an associated patient account.');
+            return;
+        }
+
+        try {
+            await createReport({
+                appointmentId: selectedAppointmentForReport.id,
+                patientId: selectedAppointmentForReport.patientId,
+                doctorId: selectedAppointmentForReport.doctorId,
+                reportTitle: values.reportTitle,
+                reportType: values.reportType,
+                category: values.category || 'IMAGING',
+                hospitalOrLab: values.hospitalOrLab,
+                description: values.description,
+                doctorComments: values.doctorComments,
+                fileUrl: values.fileUrl,
+                fileName: values.fileName,
+                reportDate: moment().format('YYYY-MM-DD'),
+                status: values.status || 'completed',
+            }).unwrap();
+
+            message.success(`Medical report generated successfully for consultation #${selectedAppointmentForReport.trackingId}!`);
+            setIsGenerateReportModalOpen(false);
+            reportForm.resetFields();
+            refetch();
+        } catch (err) {
+            message.error(err?.data?.message || 'Failed to generate medical report.');
+        }
+    };
+
     const handleViewDetails = (record) => {
         Modal.info({
             title: `Appointment Details - #${record.trackingId}`,
@@ -115,6 +206,41 @@ const DoctorAppointmentsTable = () => {
                     <p><strong>Current Status:</strong> {renderStatusTag(record.status)}</p>
                     <p><strong>Payment Status:</strong> <Tag color={record.paymentStatus === 'paid' ? 'green' : 'orange'}>{record.paymentStatus || 'unpaid'}</Tag></p>
                     <p><strong>Prescription:</strong> <Tag color={record.prescriptionStatus === 'issued' ? 'green' : 'gold'}>{record.prescriptionStatus || 'notIssued'}</Tag></p>
+                    <hr />
+                    <h5 className="text-primary mb-3">Consultation Diagnostic Report</h5>
+                    {record.medicalReports?.[0] ? (
+                        <div className="p-3 bg-light rounded border d-flex justify-content-between align-items-center">
+                            <div>
+                                <div className="fw-bold">{record.medicalReports[0].reportTitle}</div>
+                                <div className="text-muted small">{record.medicalReports[0].reportType} · {moment(record.medicalReports[0].reportDate).format('MMM DD, YYYY')}</div>
+                            </div>
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<FaFileMedical />}
+                                onClick={() => {
+                                    setPreviewReport(record.medicalReports[0]);
+                                    setIsReportViewerOpen(true);
+                                }}
+                            >
+                                View PACS Report
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="p-3 bg-light rounded border d-flex justify-content-between align-items-center">
+                            <span className="text-muted small">No diagnostic report has been generated for this consultation yet.</span>
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<FaPlus />}
+                                onClick={() => {
+                                    handleOpenGenerateModal(record);
+                                }}
+                            >
+                                Generate Report Now
+                            </Button>
+                        </div>
+                    )}
                 </div>
             ),
         });
@@ -184,6 +310,45 @@ const DoctorAppointmentsTable = () => {
             render: (status) => (
                 <Tag color={status === 'paid' ? 'green' : 'orange'}>{status || 'unpaid'}</Tag>
             ),
+        },
+        {
+            title: 'Diagnostic Report',
+            key: 'report',
+            width: 170,
+            render: (_, record) => {
+                const report = record.medicalReports?.[0];
+                if (report) {
+                    return (
+                        <Space direction="vertical" size={2}>
+                            <Tag color="cyan" icon={<FaCheckCircle />}>Report Ready</Tag>
+                            <Button
+                                size="small"
+                                type="primary"
+                                ghost
+                                icon={<FaFileMedical />}
+                                onClick={() => {
+                                    setPreviewReport(report);
+                                    setIsReportViewerOpen(true);
+                                }}
+                            >
+                                View Report
+                            </Button>
+                        </Space>
+                    );
+                }
+
+                return (
+                    <Button
+                        size="small"
+                        type="primary"
+                        style={{ backgroundColor: '#2563eb', borderColor: '#2563eb' }}
+                        icon={<FaPlus />}
+                        onClick={() => handleOpenGenerateModal(record)}
+                    >
+                        Generate Report
+                    </Button>
+                );
+            },
         },
         {
             title: 'Actions & Attendance',
@@ -402,6 +567,153 @@ const DoctorAppointmentsTable = () => {
                     scroll={{ x: 1100 }}
                 />
             </div>
+
+            {/* Generate Diagnostic Report Modal */}
+            <Modal
+                title={
+                    <div className="d-flex align-items-center gap-2">
+                        <FaFileMedical className="text-primary" />
+                        <span>Generate Consultation Medical Report</span>
+                    </div>
+                }
+                open={isGenerateReportModalOpen}
+                onCancel={() => {
+                    setIsGenerateReportModalOpen(false);
+                    reportForm.resetFields();
+                }}
+                footer={null}
+                width={700}
+                destroyOnClose
+            >
+                {selectedAppointmentForReport && (
+                    <Form
+                        form={reportForm}
+                        layout="vertical"
+                        onFinish={handleSaveReportForAppointment}
+                    >
+                        <div className="p-3 mb-3 rounded bg-light border border-primary">
+                            <div className="row g-2 small">
+                                <div className="col-sm-6">
+                                    <strong>Consulted Patient:</strong> {selectedAppointmentForReport.firstName} {selectedAppointmentForReport.lastName}
+                                </div>
+                                <div className="col-sm-6">
+                                    <strong>Tracking ID:</strong> #{selectedAppointmentForReport.trackingId}
+                                </div>
+                                <div className="col-sm-6">
+                                    <strong>Appointment Date:</strong> {moment(selectedAppointmentForReport.scheduleDate).format('MMM DD, YYYY')} ({selectedAppointmentForReport.scheduleTime})
+                                </div>
+                                <div className="col-sm-6">
+                                    <strong>Visit Status:</strong> {renderStatusTag(selectedAppointmentForReport.status)}
+                                </div>
+                                <div className="col-12 mt-1">
+                                    <strong>Chief Complaint:</strong> <span className="text-primary fw-semibold">{selectedAppointmentForReport.reasonForVisit || selectedAppointmentForReport.description || 'Clinical Consultation'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-3 mb-3 rounded bg-white border">
+                            <label className="fw-semibold mb-1 d-block text-secondary">
+                                <FaMagic className="text-primary me-1" /> Clinical Problem Template:
+                            </label>
+                            <Select
+                                value={selectedProblemInModal}
+                                onChange={handleProblemChangeInModal}
+                                style={{ width: '100%' }}
+                            >
+                                <Select.Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest &amp; Respiratory (Chest Pain, Cough, Dyspnea)</Select.Option>
+                                <Select.Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine &amp; Orthopedic (Lumbar, Joint, Back)</Select.Option>
+                                <Select.Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal &amp; Visceral (Digestive, Liver, Renal)</Select.Option>
+                                <Select.Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic (CBC, Infection, Lipids)</Select.Option>
+                            </Select>
+                            <small className="text-muted d-block mt-1">
+                                Generates PACS-compliant observations and radiographic findings matching the consultation symptoms.
+                            </small>
+                        </div>
+
+                        <div className="row">
+                            <div className="col-md-8">
+                                <Form.Item
+                                    name="reportTitle"
+                                    label="Report Title"
+                                    rules={[{ required: true, message: 'Please enter report title' }]}
+                                >
+                                    <Input placeholder="e.g. Digital Chest X-Ray (PA View)" />
+                                </Form.Item>
+                            </div>
+                            <div className="col-md-4">
+                                <Form.Item
+                                    name="reportType"
+                                    label="Modality / Type"
+                                    rules={[{ required: true, message: 'Please select type' }]}
+                                >
+                                    <Select>
+                                        <Select.Option value="X-Ray">X-Ray</Select.Option>
+                                        <Select.Option value="ECG / EKG">ECG / EKG</Select.Option>
+                                        <Select.Option value="MRI Scan">MRI Scan</Select.Option>
+                                        <Select.Option value="CT Scan">CT Scan</Select.Option>
+                                        <Select.Option value="Ultrasound">Ultrasound</Select.Option>
+                                        <Select.Option value="Blood Test">Blood Test</Select.Option>
+                                        <Select.Option value="Lab Test">Lab Test</Select.Option>
+                                    </Select>
+                                </Form.Item>
+                            </div>
+                        </div>
+
+                        <Form.Item
+                            name="hospitalOrLab"
+                            label="Diagnostic Facility / Imaging Center"
+                        >
+                            <Input placeholder="e.g. Apex Radio-Diagnostic & Imaging Center" />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="description"
+                            label="Clinical Description & Findings"
+                            rules={[{ required: true, message: 'Please enter clinical description' }]}
+                        >
+                            <Input.TextArea rows={3} placeholder="Diagnostic study description..." />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="doctorComments"
+                            label="Physician Remarks / Formal Impression"
+                        >
+                            <Input.TextArea rows={2} placeholder="Doctor's clinical comments..." />
+                        </Form.Item>
+
+                        <div className="d-flex justify-content-end gap-2 pt-2 border-top">
+                            <Button onClick={() => setIsGenerateReportModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                loading={isGeneratingReport}
+                                icon={<FaFileMedical />}
+                            >
+                                Generate &amp; Save Report
+                            </Button>
+                        </div>
+                    </Form>
+                )}
+            </Modal>
+
+            {/* In-Modal Clinical Diagnostic Report Lightbox */}
+            <Modal
+                title="Clinical Consultation Diagnostic Report"
+                open={isReportViewerOpen}
+                onCancel={() => setIsReportViewerOpen(false)}
+                footer={null}
+                width={920}
+                destroyOnClose
+            >
+                {previewReport && (
+                    <ClinicalReportViewer
+                        report={previewReport}
+                        onBack={() => setIsReportViewerOpen(false)}
+                    />
+                )}
+            </Modal>
         </div>
     );
 };
@@ -412,6 +724,8 @@ const PatientAppointmentsTable = () => {
     const [statusFilter, setStatusFilter] = useState(undefined);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [previewReport, setPreviewReport] = useState(null);
+    const [isReportViewerOpen, setIsReportViewerOpen] = useState(false);
 
     const appointments = data || [];
 
@@ -494,6 +808,36 @@ const PatientAppointmentsTable = () => {
             render: (status) => (
                 <Tag color={status === 'paid' ? 'green' : 'orange'}>{status || 'unpaid'}</Tag>
             ),
+        },
+        {
+            title: 'Diagnostic Report',
+            key: 'report',
+            render: (_, record) => {
+                const report = record.medicalReports?.[0];
+                if (report) {
+                    return (
+                        <Space direction="vertical" size={2}>
+                            <Tag color="cyan" icon={<FaCheckCircle />}>Report Ready</Tag>
+                            <Button
+                                size="small"
+                                type="primary"
+                                ghost
+                                icon={<FaFileMedical />}
+                                onClick={() => {
+                                    setPreviewReport(report);
+                                    setIsReportViewerOpen(true);
+                                }}
+                            >
+                                View Report
+                            </Button>
+                        </Space>
+                    );
+                }
+
+                return (
+                    <Tag color="default">Pending Consultation</Tag>
+                );
+            },
         },
         {
             title: 'Action',
@@ -602,6 +946,23 @@ const PatientAppointmentsTable = () => {
                             <p><strong>Payment Status:</strong> <Tag color={selectedAppointment.paymentStatus === 'paid' ? 'green' : 'orange'}>{selectedAppointment.paymentStatus || 'unpaid'}</Tag></p>
                         </div>
                     </div>
+                )}
+            </Modal>
+
+            {/* In-Modal Clinical Diagnostic Report Lightbox */}
+            <Modal
+                title="Clinical Consultation Diagnostic Report"
+                open={isReportViewerOpen}
+                onCancel={() => setIsReportViewerOpen(false)}
+                footer={null}
+                width={920}
+                destroyOnClose
+            >
+                {previewReport && (
+                    <ClinicalReportViewer
+                        report={previewReport}
+                        onBack={() => setIsReportViewerOpen(false)}
+                    />
                 )}
             </Modal>
         </div>

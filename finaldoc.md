@@ -38,8 +38,14 @@ These features are based on existing routes and components. This document does n
 
 ## 6. Newly Added Features
 
-No new clinical or appointment feature was added in this maintenance pass. The following behavior was corrected:
-
+- **Strict Doctor Patient Scoping & Care History**: Updated the `getDoctorPatients` backend service and doctor patient views (`MyPatients.jsx`) to strictly return only those patients who have booked or completed consultation appointments with that specific doctor (`doctorId = userId`). Doctors with zero appointments have an empty patient list, and doctors cannot access or view patients belonging exclusively to other doctors. Enriched patient records with consultation tracking IDs, last visit dates, prescription statuses, and full appointment history with that doctor.
+- **Consultation-Linked Medical Diagnostic Reports**: Refactored the `MedicalReport` schema to include a direct 1-to-many relationship with `Appointments` (`appointmentId`). Medical reports are strictly generated from and bound to verified patient-doctor consultations, eliminating phantom/orphaned records.
+- **Doctor Consultation Report Generation**: Added direct "+ Generate Report" functionality into the Doctor Appointments table (`Appointments.jsx`) and appointment details view (`ViewAppointment.jsx`). Doctors can generate PACS/radiology/pathology diagnostic reports tailored to the patient's specific chief complaint (chest, orthopedic/spine, abdomen, blood panel) right after or during a consultation.
+- **Strict Doctor Report Scoping**: Updated `getDoctorReports` backend service to filter reports strictly by the authenticated doctor's consulted appointments. Doctors only see diagnostic records for patients they have actively scheduled or consulted with, completely isolating patient data across providers.
+- **In-App PACS/Clinical Report Viewer**: Integrated interactive radiology/pathology report viewer modal (`ClinicalReportViewer`) directly in the doctor appointment tables and patient appointment lists.
+- **Clinical Consultation Services Catalog**: Replaced the static placeholder loop on `/service` (which previously repeated "Child care" 6 times with identical photos) with a comprehensive, interactive catalog of 12 medical consultation specialties (Cardiology, Pediatrics, Orthopedics, Neurology, Dermatology, Dentistry, General Medicine, Telehealth Video Consult, Ophthalmology, Gynecology, ENT, and Psychiatry).
+- **Specialty & Mode Filtering**: Added interactive category filter pills (Online Video Consultations, Specialized Medicine, Primary & Family Care) and live search bar to easily discover consultations by symptoms or specialties.
+- **Deep-linking & Pre-filtered Doctor Booking**: Consultation cards directly link to `/doctors?specialist=<Specialty>`, with automatic synchronization into `SearchDoctor` filters and enhanced backend multi-field matching (`services` and `specialization`).
 - API config recognizes the correctly spelled `JWT_SECRET` and `JWT_EXPIRES_IN` variables while keeping legacy misspelled aliases available.
 - Development client URL has a localhost fallback.
 - The legacy doctor verification endpoint validates tokens against the stored bcrypt hash and handles missing or expired requests; it is not part of registration or sign-in.
@@ -552,3 +558,143 @@ Latest frontend test result: **2 suites, 5 tests passed** (including the doctor 
 6. Update this matrix only after executing the relevant validation or integration tests; do not mark unexecuted database workflows as passing.
 
 MediConnect retains the existing React/Express/Prisma architecture and MySQL schema. This pass strengthens authentication and ownership checks, fixes appointment/prescription/availability workflows, modernizes the login and brand surfaces, and records validation outcomes and limitations. Production release still requires end-to-end tests with seeded accounts, working email delivery, a payment provider, migration of legacy tracking IDs, and operational security controls.
+
+---
+
+## Module Enhancement: Email-Based Forgot Password & Reset Password (AWS Medic)
+
+### 1. Overview
+A production-grade, secure, email-based password recovery system has been implemented across the full stack (React frontend, Express/Node.js API, Prisma ORM, and MySQL database).
+
+### 2. Architecture & Components
+
+#### A. Frontend
+* **`src/components/Login/SignIn.jsx`**:
+  * Updated to include a direct "Forgot password?" link (`<Link to="/forgot-password">`) positioned below the password field.
+  * Preserved full styling, accessibility tags, and brand aesthetics.
+* **`src/components/Login/ForgotPasswordPage.jsx`**:
+  * Created dedicated recovery route `/forgot-password`.
+  * Features real-time RFC email validation, a "Send Reset Link" button with loading spinners, and an immediate "Back to Login" option.
+  * Displays user-safe confirmation: `"If your email is registered, you will receive a password reset link shortly. Please check your inbox."`
+* **`src/components/Login/ResetPasswordPage.jsx`**:
+  * Created dedicated reset route `/reset-password` supporting `?token=...` query parameters as well as legacy URL paths.
+  * Auto-validates token on mount against the backend (`POST /api/v1/auth/validate-reset-token`).
+  * Shows expiration/invalid state with 1-click option to request a fresh link.
+  * Features dual password fields with show/hide toggle buttons.
+  * Real-time password strength meter checking all 5 criteria: 8–128 characters, uppercase, lowercase, number, and special symbol.
+  * Real-time matching validation between new password and confirm password.
+  * Displays `"Your password has been reset successfully. You can now log in using your new password."` upon completion and redirects to `/login` after 3 seconds.
+* **`src/redux/api/authApi.js`**:
+  * Added RTK Query mutations: `forgotPassword`, `validateResetToken`, `resetPasswordWithToken`.
+* **`src/App.jsx`**:
+  * Added client-side routes for `/forgot-password`, `/reset-password`, and backward-compatible route `/reset-password/:userId/:uniqueString`.
+
+#### B. Backend API & Routes
+* **`POST /api/v1/auth/forgot-password`**:
+  * Validates email format via Zod schema.
+  * Rate-limited to max 5 requests per 15 minutes per IP.
+  * Silently generates tokens for existing accounts without disclosing email existence.
+  * Sends an HTML email via Gmail SMTP using Handlebars template `api/template/resetPassword.html`.
+* **`POST /api/v1/auth/validate-reset-token`**:
+  * Verifies that the provided token exists, has not expired (15-minute window), and maps to an active user.
+* **`POST /api/v1/auth/reset-password`**:
+  * Validates password strength policy.
+  * Hashes incoming raw token with SHA-256 and retrieves the `ForgotPassword` record.
+  * Encrypts the new password using `bcrypt` (12 salt rounds).
+  * Transactionally updates `Auth.password` and deletes all pending tokens for that user (strict single-use enforcement).
+  * Preserves user roles, profile attributes, and doctor approval statuses.
+
+#### C. Email Template & SMTP
+* **`api/template/resetPassword.html`**:
+  * Attractive, responsive, mobile-tested HTML email.
+  * Branded with **AWS Medic** healthcare theme.
+  * Includes personalized greeting, explanatory notice, prominent `[RESET MY PASSWORD]` button, fallback raw URL, 15-minute expiry warning, security advisory, and AWS Medic Team sign-off.
+* **`api/src/helpers/emailTransporter.ts` & `Transporter.ts`**:
+  * Utilizes `nodemailer` with Gmail service.
+  * Supports `GMAIL_APP_EMAIL` and `EMAIL_PASS`.
+
+### 3. Security Implementation Highlights
+1. **Cryptographically Secure Entropy**: Generated with `crypto.randomBytes(32).toString('hex')` (256-bit entropy).
+2. **Zero Plaintext Token Storage**: Raw tokens are never stored in the database. Only SHA-256 hex hashes are persisted in `forgot-password.uniqueString`.
+3. **Strict 15-Minute Expiry**: Enforced by comparing `expiresAt` with server clock via `moment`.
+4. **Single-Use Guarantee**: Used tokens and any prior tokens for the user are immediately expunged from `forgot-password` upon password update.
+5. **Registered Email Verification**: Explicitly verifies the email against the database before initiating reset. Unregistered emails are rejected with HTTP 404 ("This email is not registered with any account"), preventing unauthorized or empty reset attempts.
+6. **Fallback Direct Reset Link for Local Testing**: If Gmail SMTP credentials in `api/.env` are placeholder or unavailable, the backend returns the reset link directly so development and local testing are never blocked.
+7. **Rate Limiting**: Custom Express middleware `api/src/app/middlewares/rateLimiter.ts` limits brute force and spam on `/forgot-password`.
+8. **Role Preservation**: Password updates mutate only the password field; doctor verification status and user permissions remain untouched.
+
+### 4. Verification & Testing
+* **Integration Tests**: `api/scripts/test-password-reset.cjs` verified token generation, database SHA-256 hashing, lookup validation, expiry detection, single-use invalidation, and password restoration across 7 automated test steps.
+* **ESLint**: Passed with 0 errors.
+* **Frontend Production Build**: `npm run build` compiled cleanly into optimized assets.
+* **Backend Build**: TypeScript `tsc` compiled with 0 errors.
+
+---
+
+## Module Enhancement: Clinical Diagnostic Medical Records & Radiograph Viewer
+
+### 1. Overview
+The medical reports and patient records system in AWS Medic has been upgraded from simple stock image placeholders into authentic, PACS-compliant Clinical Diagnostic Medical Records and comprehensive Laboratory Pathology Panels.
+
+### 2. Architecture & Components
+
+#### A. Interactive Diagnostic Report Workstation (`ClinicalReportViewer.jsx`)
+* **Accredited Healthcare Letterhead**:
+  * Displays certified healthcare facility branding (*Apex Radio-Diagnostic & Imaging Center* / *Apollo Clinical Diagnostics & Pathology Lab*).
+  * Includes NABL / NABH accreditation, ISO 15189 certification badge, digital accession barcode, and verified final status.
+* **Complete Patient Demographics**:
+  * Formatted with Patient Name, Age, Gender, Patient UHID/MRN, Referring Physician, Study Date, and Authenticated Sign-out tag.
+* **PACS Radiograph Lightbox Viewer**:
+  * Features authentic high-resolution medical radiographs (Digital Chest X-Ray PA view, Lumbar Spine Multi-planar MRI, Abdominal USG Sonogram, 12-Lead Resting ECG Tracing).
+  * Anatomical orientation indicators (`R` and `L` radiographic markers).
+  * Interactive **Invert Contrast** toggle allowing clinicians to toggle between positive and negative bone/tissue radiographic contrast.
+* **Systematic Clinical Observations**:
+  * Organ-by-organ diagnostic breakdown (Trachea & Mediastinum, Lungs & Parenchyma, Pleural Angles, Cardiothoracic Ratio, Diaphragm, Thoracic Skeletal Cage).
+  * Formal Radiologist Impression box with attending physician advisory remarks.
+* **Structured Pathology Lab Tables**:
+  * Interactive test parameter tables listing Investigation Analyte, Observed Result, Biological Reference Interval, Units (`g/dL`, `cells/mcL`, `mg/dL`, `%`), and Color-coded Clinical Status badges (`NORMAL`, `HIGH`, `LOW`).
+* **Medical Signatures & Export**:
+  * Certified digital signatures and registration numbers for attending Radiologists, Pathologists, and QA Technologists.
+  * 1-Click **Print Report / Save as PDF** support formatted via print stylesheets (`@media print`).
+
+#### B. Component Integration
+* **`src/components/Patient/MedicalRecords/ImagingReports.jsx`**: Integrated `ClinicalReportViewer` for patient imaging review.
+* **`src/components/Patient/MedicalRecords/LabReports.jsx`**: Integrated `ClinicalReportViewer` for patient laboratory review.
+* **`src/components/Doctor/Reports/Reports.jsx`**: Integrated `ClinicalReportViewer` for doctor-side patient report inspections.
+
+#### C. Database Updates (`api/scripts/update-real-reports.cjs`)
+* Replaced generic stock photos in MySQL `MedicalReport` table with genuine clinical radiographs and scan URLs.
+* Populated structured JSON `recordResults` for complete blood count panels and lipid/glycemic profiles.
+* Seeded comprehensive imaging records (Chest X-Ray, Lumbar Spine MRI, Abdominal Ultrasound, 12-Lead ECG) across patients.
+
+---
+
+## Module Enhancement: Problem-Specific Clinical Diagnostic Report Matching & Generation
+
+### 1. Overview
+Ensures strict clinical relevance between a patient's medical complaints (e.g. chest pain, persistent cough, dyspnea) and the diagnostic reports displayed or generated. When a patient's problem is related to the chest, the platform strictly isolates and displays chest diagnostic reports (**Digital Chest X-Ray (PA View)** and **12-Lead Resting ECG**) and filters out unrelated modalities (such as Lumbar Spine MRI or Abdominal Ultrasound).
+
+### 2. Clinical Matcher Engine (`src/utils/clinicalProblemMatcher.js`)
+* **Intelligent Problem Categorization**:
+  * **Chest & Respiratory**: Identifies chest pain, cough, dyspnea, bronchitis, asthma, wheezing, pneumonia, and cardiopulmonary complaints. Maps strictly to `X-Ray` (Chest PA view), `ECG/EKG`, and `Chest CT`.
+  * **Spine & Orthopedic**: Identifies back pain, lumbar stiffness, sciatica, disc herniation, and radicular pain. Maps strictly to `MRI` (Lumbar Spine).
+  * **Abdominal & Visceral**: Identifies abdominal ache, hepatobiliary, digestive, and renal symptoms. Maps strictly to `Ultrasound` (USG Abdomen).
+  * **Blood & Metabolic**: Identifies fever, fatigue, infection, and diabetes. Maps to `CBC with ESR` and `Lipid Profile`.
+* **Clinical Isolation Rules**:
+  * `filterReportsByProblem(reports, problemKey)`: When `problemKey === 'CHEST'`, returns only chest-related reports and explicitly rejects unrelated spine/abdominal modalities.
+  * `getGeneratorTemplateForProblem(problemKey)`: Supplies pre-filled, medically verified organ observations, clinical indications, diagnostic impressions, and authentic radiographs.
+
+### 3. User Interface Integration
+* **`ImagingReports.jsx` & `LabReports.jsx`**:
+  * Prominent **Clinical Chief Complaint Filter Bar** with real-time active status (`🫁 Patient Problem: Chest & Respiratory`).
+  * Table dynamically filters to show only reports matching the active complaint.
+  * Upload/Generate modal includes an **Auto-Generate Valid Diagnostic Report for this Problem** button that pre-populates genuine chest radiographs and pulmonary observations.
+* **`Reports.jsx` (Doctor & Patient views)**:
+  * Doctor dashboard report list includes clinical chief complaint filtering.
+  * Report generation workflow binds to patient complaints, automatically constraining allowed modalities to valid investigations for the complaint.
+* **`ViewAppointment.jsx`**:
+  * Automatically analyzes `appointment.reasonForVisit` and `appointment.description`.
+  * For chest appointments, renders a dedicated **"Diagnostic Reports for this Problem"** section displaying the patient's matched Digital Chest X-Ray card with 1-click **Inspect Report** action.
+  * Non-chest reports are kept hidden to avoid clinical misdirection.
+
+

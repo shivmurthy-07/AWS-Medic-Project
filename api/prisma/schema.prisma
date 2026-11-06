@@ -177,10 +177,11 @@ model Appointments {
   consultationFee    Decimal?            @db.Decimal(10, 2)
   feeSnapshot        Json?
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  prescription Prescription[]
-  payment      Payment[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  prescription   Prescription[]
+  payment        Payment[]
+  medicalReports MedicalReport[]
 
   @@map("Appointments")
 }
@@ -350,31 +351,34 @@ enum paymentStatus {
 }
 
 model MedicalReport {
-  id             String    @id @default(uuid())
+  id             String        @id @default(uuid())
+  appointmentId  String?
+  appointment    Appointments? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   patientId      String
-  patient        Patient   @relation(fields: [patientId], references: [id])
+  patient        Patient       @relation(fields: [patientId], references: [id])
   doctorId       String?
-  doctor         Doctor?   @relation(fields: [doctorId], references: [id])
+  doctor         Doctor?       @relation(fields: [doctorId], references: [id])
   reportType     String
   reportTitle    String
-  category       String?   @default("GENERAL")
+  category       String?       @default("GENERAL")
   hospitalOrLab  String?
   testDate       DateTime?
-  doctorComments String?   @db.Text
+  doctorComments String?       @db.Text
   recordResults  Json?
   fileSize       Int?
   fileMimeType   String?
-  description    String?   @db.Text
-  reportDate     DateTime  @default(now())
-  fileUrl        String?   @db.LongText
+  description    String?       @db.Text
+  reportDate     DateTime      @default(now())
+  fileUrl        String?       @db.LongText
   fileName       String?
-  uploadedBy     String?   @default("doctor")
-  status         String?   @default("completed")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  uploadedBy     String?       @default("doctor")
+  status         String?       @default("completed")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([patientId])
   @@index([doctorId])
+  @@index([appointmentId])
   @@index([category])
   @@map("MedicalReport")
 }

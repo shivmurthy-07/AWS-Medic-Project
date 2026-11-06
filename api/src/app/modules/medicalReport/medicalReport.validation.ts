@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const createMedicalReportSchema = z.object({
+    appointmentId: z.string().uuid().optional().nullable(),
     patientId: z.string().uuid().optional(),
     doctorId: z.string().uuid().optional().nullable(),
     reportType: z.string().trim().min(1, 'Report type is required'),
@@ -21,6 +22,7 @@ export const createMedicalReportSchema = z.object({
 }).passthrough();
 
 export const updateMedicalReportSchema = z.object({
+    appointmentId: z.string().uuid().optional().nullable(),
     reportType: z.string().trim().min(1).optional(),
     reportTitle: z.string().trim().min(1).max(200).optional(),
     category: z.enum(['IMAGING', 'LAB', 'GENERAL', 'OTHER']).optional(),

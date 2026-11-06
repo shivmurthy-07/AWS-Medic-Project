@@ -1,15 +1,24 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGetSingleAppointmentQuery } from '../../../redux/api/appointmentApi';
+import { useGetPatientReportsByDoctorQuery, useCreateMedicalReportMutation } from '../../../redux/api/medicalReportApi';
+import ClinicalReportViewer from '../../Patient/MedicalRecords/ClinicalReportViewer';
+import {
+	detectProblemCategory,
+	filterReportsByProblem,
+	getGeneratorTemplateForProblem,
+	CLINICAL_PROBLEM_TYPES,
+} from '../../../utils/clinicalProblemMatcher';
 import Header from '../../Shared/Header/Header';
 import Footer from '../../Shared/Footer/Footer';
 import moment from 'moment';
 import './index.css';
 import './ViewAppointment.css';
-import { Button, Tag, Tooltip, Spin, Empty } from 'antd';
+import { Button, Tag, Tooltip, Spin, Empty, message } from 'antd';
 import { clickToCopyClipBoard } from '../../../utils/copyClipBoard';
-import { FaPrint, FaCopy, FaUserMd, FaVideo, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaPrint, FaCopy, FaUserMd, FaMapMarkerAlt, FaEye, FaMagic, FaCheckCircle } from 'react-icons/fa';
 import { useReactToPrint } from 'react-to-print';
+import IntegratedVideoSession from './IntegratedVideoSession';
 
 /** Safe age in full years from DOB; null if unknown or invalid */
 function getAgeFromDateOfBirth(dateOfBirth) {
@@ -28,12 +37,57 @@ const ViewAppointment = () => {
 	const printRef = useRef(null);
 	const { id } = useParams();
 	const { data, isLoading, isError } = useGetSingleAppointmentQuery(id, { skip: !id });
+	const [previewReport, setPreviewReport] = useState(null);
+	const { data: patientReportsData, refetch: refetchReports } = useGetPatientReportsByDoctorQuery(data?.patientId, { skip: !data?.patientId });
+	const [createReport, { isLoading: isGeneratingReport }] = useCreateMedicalReportMutation();
 
 	const handlePrint = useReactToPrint({
 		contentRef: printRef,
 		bodyClass: 'print-agreement',
 		documentTitle: () => (data?.trackingId ? `Appointment-${data.trackingId}` : 'Appointment'),
 	});
+
+	const problemCategory = useMemo(() => {
+		const fullText = `${data?.reasonForVisit || ''} ${data?.description || ''}`;
+		return detectProblemCategory(fullText);
+	}, [data]);
+
+	const matchingReports = useMemo(() => {
+		const apptReports = data?.medicalReports || [];
+		const patientReports = patientReportsData?.data || patientReportsData || [];
+		const directReports = apptReports.length > 0 ? apptReports : patientReports.filter(r => r.appointmentId === data?.id);
+		if (directReports.length > 0) return directReports;
+		return filterReportsByProblem(patientReports, problemCategory);
+	}, [data, patientReportsData, problemCategory]);
+
+	const handleGenerateForAppointment = async () => {
+		if (!data?.patientId) {
+			message.warning('This appointment does not have a registered patient account.');
+			return;
+		}
+		try {
+			const template = getGeneratorTemplateForProblem(problemCategory);
+			await createReport({
+				appointmentId: data.id,
+				patientId: data.patientId,
+				doctorId: data.doctorId || null,
+				reportTitle: template.reportTitle,
+				reportType: template.reportType,
+				category: template.category,
+				hospitalOrLab: template.hospitalOrLab,
+				description: `${template.description}\n\nConsultation Chief Complaint: ${data.reasonForVisit || data.description || 'Clinical consultation'} (Appointment #${data.trackingId})`,
+				doctorComments: template.doctorComments,
+				fileUrl: template.fileUrl,
+				fileName: template.fileName,
+				reportDate: moment().format('YYYY-MM-DD'),
+				status: 'completed',
+			}).unwrap();
+			message.success(`Successfully generated authentic ${template.reportTitle} for this patient!`);
+			if (refetchReports) refetchReports();
+		} catch (err) {
+			message.error(err?.data?.message || 'Failed to generate diagnostic report.');
+		}
+	};
 
 	const patientSummary = useMemo(() => {
 		if (!data?.id) return null;
@@ -144,21 +198,8 @@ const ViewAppointment = () => {
 							<div className="view-appointment-field__label">Time</div>
 							<p className="view-appointment-field__value">{data.scheduleTime || '—'}</p>
 						</div>
-						<div className="view-appointment-field" style={{ gridColumn: '1 / -1' }}>
-							<div className="view-appointment-field__label">
-								<FaVideo className="me-1" />
-								Visit format
-							</div>
-							<p className="view-appointment-field__value">
-								<Tag color="red">Online</Tag>
-								<span className="text-muted fw-normal ms-2">Video link can be shared by the clinic if applicable.</span>
-							</p>
-							<p className="small text-muted mb-0 mt-2">
-								Example meet link (replace with your clinic workflow):{' '}
-								<a href="https://meet.google.com/" target="_blank" rel="noreferrer">
-									Google Meet
-								</a>
-							</p>
+						<div className="view-appointment-field" style={{ gridColumn: '1 / -1', padding: 0, background: 'transparent', border: 'none' }}>
+							<IntegratedVideoSession appointment={data} patientSummary={patientSummary} />
 						</div>
 						{clinicLocation && (
 							<div className="view-appointment-field" style={{ gridColumn: '1 / -1' }}>
@@ -241,6 +282,86 @@ const ViewAppointment = () => {
 						</div>
 					</div>
 				</section>
+
+				{/* Clinically Matched Diagnostic Reports for Patient Problem */}
+				<section className="view-appointment-section">
+					<div className="d-flex flex-wrap justify-content-between align-items-center mb-3">
+						<div>
+							<h2 className="view-appointment-section__title mb-1">
+								{problemCategory === CLINICAL_PROBLEM_TYPES.CHEST ? '🫁' : problemCategory === CLINICAL_PROBLEM_TYPES.SPINE ? '🦴' : problemCategory === CLINICAL_PROBLEM_TYPES.ABDOMEN ? '🩺' : '📋'}{' '}
+								Diagnostic Reports for this Problem
+							</h2>
+							<p className="text-muted small mb-0">
+								{problemCategory === CLINICAL_PROBLEM_TYPES.CHEST
+									? 'Clinical Chief Complaint: Chest & Cardiopulmonary Condition. Only valid chest radiographs/ECGs are displayed. Unrelated modalities are filtered out.'
+									: 'Diagnostic reports clinically matched to this visit problem.'}
+							</p>
+						</div>
+						{data.patientId && matchingReports.length === 0 && (
+							<Button
+								type="primary"
+								size="small"
+								icon={<FaMagic />}
+								loading={isGeneratingReport}
+								onClick={handleGenerateForAppointment}
+							>
+								Generate {problemCategory === CLINICAL_PROBLEM_TYPES.CHEST ? 'Chest X-Ray' : 'Diagnostic Report'}
+							</Button>
+						)}
+					</div>
+
+					{matchingReports.length > 0 ? (
+						<div className="row g-3">
+							{matchingReports.map((report) => (
+								<div key={report.id} className="col-12 col-md-6">
+									<div className="card h-100 border p-3 rounded shadow-sm bg-white">
+										<div className="d-flex justify-content-between align-items-start mb-2">
+											<Tag color="cyan">{report.reportType}</Tag>
+											<span className="small text-muted">{moment(report.reportDate || report.createdAt).format('MMM DD, YYYY')}</span>
+										</div>
+										<h5 className="fw-bold mb-1 text-dark" style={{ fontSize: '1rem' }}>{report.reportTitle}</h5>
+										<p className="small text-muted mb-2">{report.hospitalOrLab || 'Apex Radio-Diagnostic Center'}</p>
+										{report.description && (
+											<p className="small text-secondary mb-3" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+												{report.description}
+											</p>
+										)}
+										<div className="mt-auto d-flex justify-content-between align-items-center pt-2 border-top">
+											<span className="badge bg-success-subtle text-success small">
+												<FaCheckCircle className="me-1" /> Matched to Problem
+											</span>
+											<Button
+												type="primary"
+												size="small"
+												icon={<FaEye />}
+												onClick={() => setPreviewReport(report)}
+											>
+												Inspect Report
+											</Button>
+										</div>
+									</div>
+								</div>
+							))}
+						</div>
+					) : (
+						<div className="p-3 bg-light rounded text-center border">
+							<p className="text-muted mb-2 small">
+								No diagnostic reports currently on file matching this complaint ({data.reasonForVisit || 'Chest problem'}).
+							</p>
+							{data.patientId && (
+								<Button
+									type="primary"
+									size="small"
+									icon={<FaMagic />}
+									loading={isGeneratingReport}
+									onClick={handleGenerateForAppointment}
+								>
+									Auto-Generate {problemCategory === CLINICAL_PROBLEM_TYPES.CHEST ? 'Chest X-Ray (PA View)' : 'Diagnostic Report'} for this Patient
+								</Button>
+							)}
+						</div>
+					)}
+				</section>
 			</div>
 		);
 	} else {
@@ -264,6 +385,11 @@ const ViewAppointment = () => {
 					<div ref={printRef}>{content}</div>
 				</div>
 			</div>
+			<ClinicalReportViewer
+				report={previewReport}
+				open={Boolean(previewReport)}
+				onClose={() => setPreviewReport(null)}
+			/>
 			<Footer />
 		</>
 	);

@@ -682,7 +682,7 @@ const ProfileSetting = () => {
         <DashboardLayout>
             <div className="dashboard-card mb-5">
                 <div className="dashboard-card-header mb-3">
-                    <h3 className="dashboard-card-title">Profile Settings & Credentials</h3>
+                    <h3 className="dashboard-card-title">{role === 'doctor' ? 'Doctor Profile Settings & Credentials' : 'Patient Profile Settings'}</h3>
                 </div>
 
                 {/* Profile Completion Indicator for Doctor */}
