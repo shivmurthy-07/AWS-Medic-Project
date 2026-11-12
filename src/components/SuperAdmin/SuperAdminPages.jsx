@@ -1120,7 +1120,15 @@ const AppointmentManagement = () => {
         { title: 'Schedule', key: 'schedule', render: (_, appointment) => `${appointment.scheduleDate || '—'} ${appointment.scheduleTime || ''}` },
         { title: 'Status', dataIndex: 'status', render: (value) => <StatusTag value={value} /> },
         { title: 'Payment', dataIndex: 'paymentStatus', render: (value) => value || '—' },
-        { title: 'Tracking ID', dataIndex: 'trackingId', render: (value) => value || '—' },
+        {
+            title: 'Appointment ID',
+            dataIndex: 'trackingId',
+            width: 190,
+            render: (value, record) => {
+                const displayId = value || record?.id;
+                return <span style={{ wordBreak: 'break-all' }}>{displayId ? `#${displayId}` : '—'}</span>;
+            },
+        },
         { title: 'Created', dataIndex: 'createdAt', render: displayDate },
     ];
     return (

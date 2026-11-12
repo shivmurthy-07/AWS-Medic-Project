@@ -354,9 +354,24 @@ const PassworResetConfirm = async (payload: any): Promise<any> => {
 };
 
 const changePassword = async (user: any, payload: any): Promise<{ message: string }> => {
-    const { oldPassword, newPassword } = payload || {};
-    if (!oldPassword || !newPassword) {
+    const rawOldPassword = payload?.oldPassword ?? payload?.currentPassword;
+    const rawNewPassword = payload?.newPassword;
+    if (
+        typeof rawOldPassword !== 'string' ||
+        typeof rawNewPassword !== 'string' ||
+        !rawOldPassword.trim() ||
+        !rawNewPassword.trim()
+    ) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Please provide both current and new password.');
+    }
+    if (rawNewPassword.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(rawNewPassword)) {
+        throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            'New password must be at least 8 characters and include uppercase, lowercase, and a number.'
+        );
+    }
+    if (!user?.email) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Authenticated user email not found.');
     }
     const isUserExist = await prisma.auth.findUnique({
         where: { email: user.email.toLowerCase() }
@@ -364,11 +379,11 @@ const changePassword = async (user: any, payload: any): Promise<{ message: strin
     if (!isUserExist) {
         throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
     }
-    const isPasswordMatched = await bcrypt.compare(oldPassword, isUserExist.password);
+    const isPasswordMatched = await bcrypt.compare(rawOldPassword, isUserExist.password);
     if (!isPasswordMatched) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Current password does not match.');
     }
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const hashedPassword = await bcrypt.hash(rawNewPassword, 12);
     await prisma.auth.update({
         where: { id: isUserExist.id },
         data: { password: hashedPassword }

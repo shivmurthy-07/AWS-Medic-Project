@@ -7,6 +7,7 @@ import avatar from '../../../images/avatar.jpg';
 import { Button, message } from 'antd';
 import { getUserInfo, loggedOut } from '../../../service/auth.service';
 import HeaderNav from './HeaderNav';
+import BackButton from '../../UI/BackButton';
 
 const ROLE_META = {
     patient: { label: 'Patient', className: 'nav-popover-role nav-popover-role--patient' },
@@ -101,7 +102,8 @@ const Header = () => {
     return (
         <>
             <header id="header" className={`fixed-top ${!show && 'stickyHeader'}`}>
-                <div className="container d-flex align-items-center">
+                <div className="container-fluid px-3 px-md-4 d-flex align-items-center">
+                    <BackButton className="header-back-btn me-3" />
                     <Link to={'/'} className="logo me-auto">
                         <img src={img} alt="MediConnect" className="img-fluid" />
                         <span className="logo-brand">MediConnect</span>

@@ -3,7 +3,7 @@ import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/apiError";
 import httpStatus from "http-status";
 import moment from 'moment';
-import { randomBytes } from 'crypto';
+import { randomUUID } from 'crypto';
 import { EmailtTransporter } from "../../../helpers/emailTransporter";
 import * as path from 'path';
 import config from "../../../config";
@@ -21,7 +21,8 @@ import {
     appointmentTrackingSchema,
 } from "./appointment.validation";
 
-const createTrackingId = () => randomBytes(16).toString('hex').toUpperCase();
+// Generate one canonical UUID so appointment.id and appointment.trackingId always match
+const createUnifiedAppointmentId = () => randomUUID();
 
 const APPOINTMENT_REPORT_INCLUDE = {
     include: {
@@ -199,15 +200,17 @@ const createAppointment = async (payload: any, user: any): Promise<Appointments 
             timestamp: new Date().toISOString()
         };
 
+        const unifiedId = createUnifiedAppointmentId();
         const appointment = await tx.appointments.create({
             data: {
                 ...appointmentData,
+                id: unifiedId,
                 consultationType: feeCalc.serviceName,
                 consultationMode: feeCalc.mode,
                 consultationFee: docFee,
                 feeSnapshot: feeSnapshot as any,
                 paymentStatus: initialPaymentStatus,
-                trackingId: createTrackingId()
+                trackingId: unifiedId
             },
             include: {
                 doctor: true,
@@ -332,11 +335,13 @@ const createAppointmentByUnAuthenticateUser = async (payload: any): Promise<Appo
         );
         const isPaid = payment.paymentMethod !== 'cash';
         const initialPaymentStatus = isPaid ? 'paid' : 'unpaid';
+        const unifiedId = createUnifiedAppointmentId();
         const appointment = await tx.appointments.create({
             data: {
                 ...appointmentData,
+                id: unifiedId,
                 paymentStatus: initialPaymentStatus,
-                trackingId: createTrackingId()
+                trackingId: unifiedId
             },
         });
         const { paymentMethod, paymentType } = payment;
@@ -515,10 +520,20 @@ const getAppointmentConfirmation = async (id: string) => prisma.appointments.fin
 
 const getAppointmentByTrackingId = async (data: any) => {
     const { id } = validatePayload(appointmentTrackingSchema, data);
+    const rawTrimmed = typeof id === 'string' ? id.trim().replace(/^#/, '') : '';
+    const normalizedTracking = rawTrimmed.toUpperCase();
+    const normalizedLower = rawTrimmed.toLowerCase();
 
-    const result = await prisma.appointments.findUnique({
+    const result = await prisma.appointments.findFirst({
         where: {
-            trackingId: typeof id === 'string' ? id.trim().toUpperCase() : ''
+            OR: [
+                { trackingId: rawTrimmed },
+                { trackingId: normalizedTracking },
+                { trackingId: normalizedLower },
+                { id: rawTrimmed },
+                { id: normalizedTracking },
+                { id: normalizedLower },
+            ],
         },
         select: {
             id: true,
@@ -919,6 +934,28 @@ const updateAppointmentByDoctor = async (user: any, payload: Partial<Appointment
     return result;
 }
 
+/**
+ * Ensures any legacy appointments have trackingId synchronized with their canonical appointment id.
+ */
+const syncUnifiedAppointmentIds = async (): Promise<number> => {
+    const appointments = await prisma.appointments.findMany({
+        select: { id: true, trackingId: true },
+    });
+    const mismatches = appointments.filter((apt) => apt.trackingId !== apt.id);
+    if (mismatches.length === 0) {
+        return 0;
+    }
+    await Promise.all(
+        mismatches.map((apt) =>
+            prisma.appointments.update({
+                where: { id: apt.id },
+                data: { trackingId: apt.id },
+            })
+        )
+    );
+    return mismatches.length;
+};
+
 export const AppointmentService = {
     createAppointment,
     getAllAppointments,
@@ -934,5 +971,6 @@ export const AppointmentService = {
     getPatientPaymentInfo,
     getDoctorInvoices,
     createAppointmentByUnAuthenticateUser,
-    getAppointmentByTrackingId
+    getAppointmentByTrackingId,
+    syncUnifiedAppointmentIds
 }

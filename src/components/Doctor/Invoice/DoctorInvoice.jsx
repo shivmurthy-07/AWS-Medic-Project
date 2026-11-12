@@ -34,8 +34,11 @@ const DoctorInvoicesView = () => {
 
     const filteredData = data?.filter(invoice => {
         const patientName = getPatientName(invoice).toLowerCase();
-        const matchesSearch = patientName.includes(searchTerm.toLowerCase()) ||
-            invoice?.id?.toLowerCase().includes(searchTerm.toLowerCase());
+        const trackingId = (invoice?.appointment?.trackingId || '').toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch = patientName.includes(searchLower) ||
+            trackingId.includes(searchLower) ||
+            invoice?.id?.toLowerCase().includes(searchLower);
         
         const matchesDateRange = !dateRange || 
             moment(invoice?.createdAt).isBetween(dateRange[0], dateRange[1], 'day', '[]');
@@ -77,7 +80,7 @@ const DoctorInvoicesView = () => {
 
     const getMethodDisplay = (method) => {
         const m = (method || '').toLowerCase();
-        if (m === 'demo') return <Tag color="blue">Demo Card (Simulated)</Tag>;
+        if (m === 'demo') return <Tag color="blue">Pay using Card</Tag>;
         if (m === 'cash') return <Tag color="orange">Cash at Clinic</Tag>;
         if (m === 'card' || m === 'creditcard') return <Tag color="blue">Credit / Debit Card</Tag>;
         if (m === 'upi') return <Tag color="cyan">UPI Payment</Tag>;
@@ -86,11 +89,13 @@ const DoctorInvoicesView = () => {
 
     const columns = [
         {
-            title: 'Invoice ID',
+            title: 'Appointment ID',
             key: 'invoiceId',
-            width: 130,
+            width: 190,
             render: (_, record) => (
-                <div className="fw-bold font-monospace">#{record?.id?.slice(0, 8).toUpperCase()}</div>
+                <div className="fw-bold font-monospace small" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
+                    #{record?.appointment?.trackingId || record?.appointmentId || record?.id}
+                </div>
             ),
         },
         {
@@ -181,7 +186,7 @@ const DoctorInvoicesView = () => {
                         style={{ width: 180 }}
                         options={[
                             { label: 'All Methods', value: 'all' },
-                            { label: 'Demo Card', value: 'demo' },
+                            { label: 'Pay using Card', value: 'demo' },
                             { label: 'Cash at Clinic', value: 'cash' },
                             { label: 'Card', value: 'card' },
                         ]}
@@ -217,13 +222,16 @@ const PatientInvoicesView = () => {
 
     const filteredData = data?.filter(invoice => {
         const doctorName = `Dr. ${invoice?.appointment?.doctor?.firstName || ''} ${invoice?.appointment?.doctor?.lastName || ''}`.toLowerCase();
-        return doctorName.includes(searchTerm.toLowerCase()) ||
-            invoice?.id?.toLowerCase().includes(searchTerm.toLowerCase());
+        const trackingId = (invoice?.appointment?.trackingId || '').toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
+        return doctorName.includes(searchLower) ||
+            trackingId.includes(searchLower) ||
+            invoice?.id?.toLowerCase().includes(searchLower);
     });
 
     const getMethodDisplay = (method) => {
         const m = (method || '').toLowerCase();
-        if (m === 'demo') return <Tag color="blue">Demo Card (Simulated)</Tag>;
+        if (m === 'demo') return <Tag color="blue">Pay using Card</Tag>;
         if (m === 'cash') return <Tag color="orange">Pay at Clinic (Cash)</Tag>;
         if (m === 'card' || m === 'creditcard') return <Tag color="blue">Credit / Debit Card</Tag>;
         return <Tag color="default">{method || 'N/A'}</Tag>;
@@ -231,10 +239,13 @@ const PatientInvoicesView = () => {
 
     const columns = [
         {
-            title: 'Invoice ID',
+            title: 'Appointment ID',
             key: 'invoiceId',
+            width: 190,
             render: (_, record) => (
-                <div className="fw-bold font-monospace">#{record?.id?.slice(0, 8).toUpperCase()}</div>
+                <div className="fw-bold font-monospace small" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
+                    #{record?.appointment?.trackingId || record?.appointmentId || record?.id}
+                </div>
             ),
         },
         {

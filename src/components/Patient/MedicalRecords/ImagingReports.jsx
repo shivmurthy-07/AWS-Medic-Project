@@ -2,9 +2,7 @@ import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../../Doctor/DashboardLayout/DashboardLayout';
 import {
     useGetPatientReportsQuery,
-    useCreateMedicalReportMutation,
     useDeleteMedicalReportMutation,
-    useUploadReportFileMutation,
 } from '../../../redux/api/medicalReportApi';
 import {
     Card,
@@ -12,26 +10,18 @@ import {
     Button,
     Input,
     Select,
-    Modal,
-    Form,
-    Upload,
-    DatePicker,
     Tag,
     Popconfirm,
     message,
     Space,
     Typography,
-    Divider,
 } from 'antd';
 import ClinicalReportViewer from './ClinicalReportViewer';
 import {
-    FaFileMedical,
-    FaPlus,
     FaSearch,
     FaEye,
     FaDownload,
     FaTrash,
-    FaUpload,
     FaXRay,
     FaFilePdf,
     FaFileImage,
@@ -41,25 +31,18 @@ import {
     CLINICAL_PROBLEM_TYPES,
     filterReportsByProblem,
 } from '../../../utils/clinicalProblemMatcher';
-import { FaCheckCircle, FaFilter } from 'react-icons/fa';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 const { Option } = Select;
 
 const ImagingReports = () => {
     const { data: reportsData, isLoading, refetch } = useGetPatientReportsQuery({});
-    const [createReport, { isLoading: isCreating }] = useCreateMedicalReportMutation();
-    const [deleteReport, { isLoading: isDeleting }] = useDeleteMedicalReportMutation();
-    const [uploadFile, { isLoading: isUploadingFile }] = useUploadReportFileMutation();
+    const [deleteReport] = useDeleteMedicalReportMutation();
 
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [previewDoc, setPreviewDoc] = useState(null);
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('ALL');
     const [activeProblem, setActiveProblem] = useState(CLINICAL_PROBLEM_TYPES.ALL);
-    const [form] = Form.useForm();
-    const [fileList, setFileList] = useState([]);
 
     const allReports = reportsData?.data || reportsData || [];
 
@@ -96,51 +79,6 @@ const ImagingReports = () => {
         return filterReportsByProblem(baseImagingReports, activeProblem);
     }, [baseImagingReports, activeProblem]);
 
-    const handleUploadSubmit = async (values) => {
-        try {
-            let uploadedFileUrl = '';
-            let originalFileName = '';
-            let fileSize = 0;
-            let fileMime = '';
-
-            if (fileList.length > 0) {
-                const formData = new FormData();
-                formData.append('file', fileList[0].originFileObj || fileList[0]);
-                const uploadRes = await uploadFile(formData).unwrap();
-                uploadedFileUrl = uploadRes?.data?.fileUrl || uploadRes?.fileUrl;
-                originalFileName = uploadRes?.data?.fileName || fileList[0].name;
-                fileSize = uploadRes?.data?.fileSize || fileList[0].size;
-                fileMime = uploadRes?.data?.fileMimeType || fileList[0].type;
-            }
-
-            const finalUrl = uploadedFileUrl || null;
-            const finalName = originalFileName || null;
-
-            await createReport({
-                reportTitle: values.reportTitle,
-                reportType: values.reportType,
-                category: 'IMAGING',
-                hospitalOrLab: values.hospitalOrLab || null,
-                testDate: values.testDate ? values.testDate.format('YYYY-MM-DD') : null,
-                reportDate: values.reportDate ? values.reportDate.format('YYYY-MM-DD') : new Date().toISOString(),
-                description: values.description || null,
-                doctorComments: values.doctorComments || null,
-                fileUrl: finalUrl,
-                fileName: finalName,
-                fileSize: fileSize || null,
-                fileMimeType: fileMime || null,
-            }).unwrap();
-
-            message.success('Imaging report uploaded successfully.');
-            setIsUploadModalOpen(false);
-            form.resetFields();
-            setFileList([]);
-            refetch();
-        } catch (error) {
-            message.error(error?.data?.message || 'Could not upload report. Please check the file and try again.');
-        }
-    };
-
     const handleDelete = async (id) => {
         try {
             await deleteReport(id).unwrap();
@@ -152,6 +90,16 @@ const ImagingReports = () => {
     };
 
     const columns = [
+        {
+            title: 'Appointment ID',
+            key: 'appointmentId',
+            width: 190,
+            render: (_, r) => r.appointment?.trackingId ? (
+                <Tag color="purple" style={{ whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: 1.35 }}>
+                    #{r.appointment.trackingId}
+                </Tag>
+            ) : <span className="text-muted">—</span>,
+        },
         {
             title: 'Report Title',
             key: 'title',
@@ -238,13 +186,6 @@ const ImagingReports = () => {
                             View, inspect, and safely archive your X-Rays, MRIs, CT Scans, Ultrasounds, and ECGs.
                         </Text>
                     </div>
-                    <Button
-                        type="primary"
-                        icon={<FaPlus />}
-                        onClick={() => setIsUploadModalOpen(true)}
-                    >
-                        Upload Imaging Report
-                    </Button>
                 </div>
 
                 {/* Clinical Chief Complaint / Problem Relevance Bar */}
@@ -329,118 +270,6 @@ const ImagingReports = () => {
                         scroll={{ x: 800 }}
                     />
                 </Card>
-
-                {/* Upload Modal */}
-                <Modal
-                    title="Upload X-Ray / Imaging Document"
-                    open={isUploadModalOpen}
-                    onCancel={() => { setIsUploadModalOpen(false); form.resetFields(); setFileList([]); }}
-                    footer={null}
-                    width={600}
-                >
-                    <Form form={form} layout="vertical" onFinish={handleUploadSubmit}>
-                        <div className="alert alert-info mb-3 small">
-                            Official doctor-ordered consultation imaging reports appear here automatically after your doctor completes your consultation. Use this form only to upload external scans or PDFs from your computer.
-                        </div>
-
-                        <Form.Item
-                            name="reportTitle"
-                            label="Report Title"
-                            rules={[{ required: true, message: 'Please enter a title for the report' }]}
-                        >
-                            <Input placeholder="E.g., Chest X-Ray PA View, Lumbar Spine MRI" />
-                        </Form.Item>
-
-                        <div className="row">
-                            <div className="col-md-6">
-                                <Form.Item
-                                    name="reportType"
-                                    label="Imaging Modality / Type"
-                                    rules={[{ required: true, message: 'Please select an imaging type' }]}
-                                >
-                                    <Select placeholder="Select type">
-                                        <Option value="X-Ray">X-Ray</Option>
-                                        <Option value="MRI">MRI</Option>
-                                        <Option value="CT Scan">CT Scan</Option>
-                                        <Option value="Ultrasound">Ultrasound</Option>
-                                        <Option value="ECG">ECG</Option>
-                                        <Option value="PET Scan">PET Scan</Option>
-                                        <Option value="Mammography">Mammography</Option>
-                                        <Option value="Other Imaging">Other Imaging</Option>
-                                    </Select>
-                                </Form.Item>
-                            </div>
-                            <div className="col-md-6">
-                                <Form.Item name="hospitalOrLab" label="Hospital / Imaging Center">
-                                    <Input placeholder="E.g., Apollo Imaging, Suburban Diagnostics" />
-                                </Form.Item>
-                            </div>
-                        </div>
-
-                        <div className="row">
-                            <div className="col-md-6">
-                                <Form.Item name="testDate" label="Test / Scan Date">
-                                    <DatePicker style={{ width: '100%' }} />
-                                </Form.Item>
-                            </div>
-                            <div className="col-md-6">
-                                <Form.Item name="reportDate" label="Report Date">
-                                    <DatePicker style={{ width: '100%' }} defaultValue={moment()} />
-                                </Form.Item>
-                            </div>
-                        </div>
-
-                        <Form.Item name="description" label="Clinical Notes / Findings">
-                            <TextArea rows={3} placeholder="Radiologist impressions, clinical notes, or findings..." />
-                        </Form.Item>
-
-                        <Form.Item name="doctorComments" label="Attending Physician / Radiologist Impressions">
-                            <TextArea rows={2} placeholder="Physician conclusion / impression..." />
-                        </Form.Item>
-
-                        <Form.Item label="Report Scan / Radiograph Document" required>
-                            <Upload
-                                beforeUpload={(file) => {
-                                    const isValidType = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type);
-                                    if (!isValidType) {
-                                        message.error('You can only upload JPG, PNG, WEBP, or PDF files!');
-                                        return Upload.LIST_IGNORE;
-                                    }
-                                    const isLt10M = file.size / 1024 / 1024 < 10;
-                                    if (!isLt10M) {
-                                        message.error('File must be smaller than 10MB!');
-                                        return Upload.LIST_IGNORE;
-                                    }
-                                    setFileList([file]);
-                                    return false;
-                                }}
-                                fileList={fileList}
-                                onRemove={() => setFileList([])}
-                                maxCount={1}
-                            >
-                                <Button icon={<FaUpload />}>Select File</Button>
-                            </Upload>
-                            <div className="small text-muted mt-1">
-                                Upload your authentic scan image or PDF (JPG, PNG, WEBP, PDF up to 10MB).
-                            </div>
-                        </Form.Item>
-
-                        <Divider />
-                        <div className="d-flex justify-content-end gap-2">
-                            <Button onClick={() => { setIsUploadModalOpen(false); form.resetFields(); setFileList([]); }}>
-                                Cancel
-                            </Button>
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                loading={isCreating || isUploadingFile}
-                                disabled={fileList.length === 0}
-                            >
-                                Upload Imaging Report
-                            </Button>
-                        </div>
-                    </Form>
-                </Modal>
 
                 {/* Document Preview Modal */}
                 <ClinicalReportViewer

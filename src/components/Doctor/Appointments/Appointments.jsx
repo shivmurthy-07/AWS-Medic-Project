@@ -61,9 +61,11 @@ const DoctorAppointmentsTable = () => {
 
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
+            const normalizedIdTerm = term.replace(/^#/, '');
             result = result.filter(apt =>
                 `${apt.firstName} ${apt.lastName}`.toLowerCase().includes(term) ||
-                apt.trackingId?.toLowerCase().includes(term) ||
+                apt.trackingId?.toLowerCase().includes(normalizedIdTerm) ||
+                apt.id?.toLowerCase().includes(normalizedIdTerm) ||
                 apt.email?.toLowerCase().includes(term) ||
                 apt.phone?.includes(term)
             );
@@ -209,8 +211,8 @@ const DoctorAppointmentsTable = () => {
             render: (_, record) => (
                 <div>
                     <div className="fw-bold">{record.firstName} {record.lastName}</div>
-                    <div className="text-muted small">{record.email}</div>
-                    <div className="text-muted small">Tracking: #{record.trackingId}</div>
+                    <div className="text-muted small text-break">{record.email}</div>
+                    <div className="text-muted small text-break">Appointment ID: #{record.trackingId}</div>
                 </div>
             ),
         },
@@ -466,7 +468,7 @@ const DoctorAppointmentsTable = () => {
             <div className="dashboard-card">
                 <div className="table-toolbar mb-3 d-flex flex-wrap gap-2">
                     <Input
-                        placeholder="Search patient name, email, tracking ID..."
+                        placeholder="Search patient name, email, appointment ID..."
                         prefix={<FaSearch />}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -558,10 +560,12 @@ const PatientAppointmentsTable = () => {
         let result = appointments;
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
+            const normalizedIdTerm = term.replace(/^#/, '');
             result = result.filter(apt =>
                 `${apt.doctor?.firstName} ${apt.doctor?.lastName}`.toLowerCase().includes(term) ||
                 apt.doctor?.specialization?.toLowerCase().includes(term) ||
-                apt.trackingId?.toLowerCase().includes(term)
+                apt.trackingId?.toLowerCase().includes(normalizedIdTerm) ||
+                apt.id?.toLowerCase().includes(normalizedIdTerm)
             );
         }
         if (statusFilter) {
@@ -615,10 +619,15 @@ const PatientAppointmentsTable = () => {
             ),
         },
         {
-            title: 'Tracking ID',
+            title: 'Appointment ID',
             dataIndex: 'trackingId',
             key: 'trackingId',
-            render: (id) => <Tag color="#667eea">#{id}</Tag>,
+            width: 190,
+            render: (id) => (
+                <Tag color="#667eea" style={{ whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: 1.35 }}>
+                    #{id || '—'}
+                </Tag>
+            ),
         },
         {
             title: 'Status',
@@ -720,7 +729,7 @@ const PatientAppointmentsTable = () => {
             <div className="dashboard-card">
                 <div className="table-toolbar mb-3 d-flex flex-wrap gap-2">
                     <Input
-                        placeholder="Search by doctor name or tracking ID..."
+                        placeholder="Search by doctor name or appointment ID..."
                         prefix={<FaSearch />}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -776,7 +785,7 @@ const PatientAppointmentsTable = () => {
                             <p><strong>Date:</strong> {moment(selectedAppointment.scheduleDate).format('MMMM DD, YYYY')}</p>
                             <p><strong>Scheduled Time Slot:</strong> <Tag color="blue">{selectedAppointment.scheduleTime}</Tag></p>
                             <p><strong>Visit Status:</strong> {renderStatusTag(selectedAppointment.status)}</p>
-                            <p><strong>Tracking Number:</strong> #{selectedAppointment.trackingId}</p>
+                            <p><strong>Appointment ID:</strong> #{selectedAppointment.trackingId}</p>
                             <p><strong>Payment Status:</strong> <Tag color={selectedAppointment.paymentStatus === 'paid' ? 'green' : 'orange'}>{selectedAppointment.paymentStatus || 'unpaid'}</Tag></p>
                         </div>
                     </div>

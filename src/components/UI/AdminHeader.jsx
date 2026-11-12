@@ -3,10 +3,14 @@ import logo from '../../images/mediconnect-mark.svg';
 import userImg from '../../images/avatar.jpg';
 import './AdminHeader.css';
 import { Link } from 'react-router-dom';
+import BackButton from './BackButton';
 
 const AdminHeader = () => {
     return (
         <div className="header">
+            <div className="admin-header-back">
+                <BackButton />
+            </div>
             <div className="header-left">
                 <Link to="/" className="logo">
                     <img src={logo} alt="MediConnect" />

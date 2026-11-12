@@ -82,7 +82,7 @@ const CheckoutPage = ({
       !Number.isInteger(month) || month < 1 || month > 12 ||
       !/^\d{2}(\d{2})?$/.test(yearText) || !Number.isFinite(expiry.getTime()) || expiry < new Date() ||
       !/^\d{3,4}$/.test(cardDetails.cvv)) {
-      setCardError('Enter valid demo card details and a future expiry date.');
+      setCardError('Enter valid card details and a future expiry date.');
       onDemoPaymentComplete(false);
       return;
     }
@@ -100,7 +100,7 @@ const CheckoutPage = ({
   return (
     <div className="appointment-step appointment-step--payment">
       <p className="appointment-step__title">Payment</p>
-      <p className="appointment-step__subtitle">Choose a demo card simulation or pay at the clinic.</p>
+      <p className="appointment-step__subtitle">Choose to pay using card or pay at the clinic.</p>
 
       <div className="checkout-layout">
         <div>
@@ -113,7 +113,7 @@ const CheckoutPage = ({
                 aria-pressed={paymentOption === 'demo'}
                 onClick={() => handlePaymentOptionChange('demo')}
               >
-                Demo card (simulated)
+                Pay using card
               </button>
               <button
                 type="button"
@@ -128,12 +128,12 @@ const CheckoutPage = ({
             {paymentOption === 'demo' && (
               <div className="demo-payment">
                 <div className="demo-payment__notice" role="note">
-                  Project demo only: this simulates a payment. Use dummy details only. No real charge is made, and card details stay in this browser and are never sent to the server.
+                  Test mode: card payments are simulated for project evaluation. No real charge is made, and card details stay in this browser and are never sent to the server.
                   <br />
                   Test card: <strong>4242 4242 4242 4242</strong> · any future expiry · any 3-digit CVV
                   <div className="mt-2">
                     <Button size="small" type="dashed" onClick={handleAutoFillTestCard}>
-                      Auto-fill Demo Card
+                      Auto-fill Card Details
                     </Button>
                   </div>
                 </div>
@@ -142,13 +142,13 @@ const CheckoutPage = ({
                   <Input
                     id="demo-card-name"
                     name="name"
-                    placeholder="Demo User"
+                    placeholder="Cardholder Name"
                     value={cardDetails.name}
                     onChange={handleCardChange}
                     maxLength={100}
                     required
                   />
-                  <label htmlFor="demo-card-number">Dummy card number</label>
+                  <label htmlFor="demo-card-number">Card number</label>
                   <Input
                     id="demo-card-number"
                     name="number"
@@ -203,11 +203,11 @@ const CheckoutPage = ({
                   {cardError && <p className="demo-card-form__error" role="alert">{cardError}</p>}
                   {demoPaymentComplete && (
                     <p className="demo-card-form__success" role="status">
-                      <FaCreditCard aria-hidden="true" /> Demo payment approved (simulated only).
+                      <FaCreditCard aria-hidden="true" /> Card payment approved (simulated only).
                     </p>
                   )}
                   <Button type="primary" htmlType="submit">
-                    {demoPaymentComplete ? 'Simulate again' : 'Simulate demo payment'}
+                    {demoPaymentComplete ? 'Update card payment' : 'Confirm card payment'}
                   </Button>
                 </form>
               </div>
@@ -299,7 +299,7 @@ const CheckoutPage = ({
         <div className="booking-terms">
           <p><strong>Appointments:</strong> Your booking is subject to the selected doctor and time slot remaining available. Please arrive on time and contact the clinic if you need to change your appointment.</p>
           <p><strong>Fees:</strong> The consultation fee, booking fee, and applicable taxes are shown in the order summary before confirmation.</p>
-          <p><strong>Demo card option:</strong> This is a project-review simulation only. Use dummy card details; no real payment is processed, and card details are not stored or transmitted.</p>
+          <p><strong>Pay using card option:</strong> This is a test-mode card simulation only. Use test card details; no real payment is processed, and card details are not stored or transmitted.</p>
           <p><strong>Information:</strong> Details submitted in this form are used to create and manage your appointment and provide booking updates.</p>
         </div>
       </Modal>

@@ -238,6 +238,13 @@ html.menu-opened body {
     float: left;
     margin-left: 15px;
 }
+.admin-header-back {
+    float: left;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    margin-left: 16px;
+}
 .top-nav-search form {
     margin-top: 10px;
 	position: relative;

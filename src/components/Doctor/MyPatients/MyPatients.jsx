@@ -112,36 +112,46 @@ const MyPatients = () => {
                patient?.mobile?.includes(searchTerm);
     });
 
+    const getAppointmentTrackingId = (record) => record?.trackingId || record?.appointments?.[0]?.trackingId || '';
+
     const columns = [
         {
             title: 'Patient Details',
             key: 'patient',
-            render: (_, record) => (
-                <div className="d-flex align-items-center">
-                    <Avatar 
-                        src={record?.img} 
-                        icon={<FaUser />} 
-                        size={46}
-                    />
-                    <div className="ms-3">
-                        <div className="fw-bold">{getInitPatientName(record)}</div>
-                        <div className="text-muted small">ID: #{record?.trackingId || record?.id}</div>
+            width: 240,
+            render: (_, record) => {
+                const apptId = getAppointmentTrackingId(record);
+                return (
+                    <div className="d-flex align-items-center">
+                        <Avatar 
+                            src={record?.img} 
+                            icon={<FaUser />} 
+                            size={46}
+                            style={{ flexShrink: 0 }}
+                        />
+                        <div className="ms-3" style={{ minWidth: 0, flex: 1 }}>
+                            <div className="fw-bold">{getInitPatientName(record)}</div>
+                            <div className="text-muted small patient-id-wrap font-monospace">
+                                ID: #{apptId || record?.id}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            ),
+                );
+            },
         },
         {
             title: 'Contact Information',
             key: 'contact',
+            width: 230,
             render: (_, record) => (
-                <div>
+                <div style={{ minWidth: 0 }}>
                     <div className="d-flex align-items-center mb-1">
-                        <FaEnvelope className="text-muted me-2" />
-                        <span className="small">{record?.email || 'N/A'}</span>
+                        <FaEnvelope className="text-muted me-2 flex-shrink-0" />
+                        <span className="small patient-id-wrap">{record?.email || '—'}</span>
                     </div>
                     <div className="d-flex align-items-center">
-                        <FaPhone className="text-muted me-2" />
-                        <span className="small">{record?.mobile || 'N/A'}</span>
+                        <FaPhone className="text-muted me-2 flex-shrink-0" />
+                        <span className="small">{record?.mobile || '—'}</span>
                     </div>
                 </div>
             ),
@@ -150,16 +160,20 @@ const MyPatients = () => {
             title: 'Last Visit Date',
             dataIndex: 'appointmentTime',
             key: 'lastVisit',
-            render: (date) => (date ? moment(date).format('MMM DD, YYYY') : 'N/A'),
+            width: 140,
+            render: (date) => (date ? moment(date).format('MMM DD, YYYY') : '—'),
             sorter: (a, b) => moment(a.appointmentTime).unix() - moment(b.appointmentTime).unix(),
         },
         {
             title: 'Consultations With You',
             key: 'appointmentsCount',
+            width: 180,
             render: (_, record) => (
                 <div>
                     <Tag color="geekblue">{record?.totalAppointments || 1} Consultation{record?.totalAppointments > 1 ? 's' : ''}</Tag>
-                    <div className="text-muted small mt-1">Latest: #{record?.trackingId}</div>
+                    <div className="text-muted small mt-1">
+                        {record?.appointmentTime ? moment(record.appointmentTime).format('MMM DD, YYYY') : '—'}
+                    </div>
                 </div>
             ),
         },
@@ -279,7 +293,7 @@ const MyPatients = () => {
                             showSizeChanger: true,
                             showTotal: (total) => `Total ${total} patients found`,
                         }}
-                        scroll={{ x: 1000 }}
+                        scroll={{ x: 1180 }}
                     />
                 </Card>
             </div>
@@ -287,6 +301,7 @@ const MyPatients = () => {
             {/* View Patient Details Modal */}
             <Modal
                 title="Patient Record &amp; Contact Info"
+                className="patient-details-modal"
                 open={isViewModalVisible}
                 onCancel={() => setIsViewModalVisible(false)}
                 footer={[
@@ -319,8 +334,10 @@ const MyPatients = () => {
                             <div className="info-item">
                                 <FaUser className="info-icon" />
                                 <div>
-                                    <div className="info-label">Patient ID</div>
-                                    <div className="info-value">#{selectedPatient?.trackingId || selectedPatient?.id}</div>
+                                    <div className="info-label">Appointment ID</div>
+                                    <div className="info-value patient-id-wrap">
+                                        #{getAppointmentTrackingId(selectedPatient) || selectedPatient?.id}
+                                    </div>
                                 </div>
                             </div>
 

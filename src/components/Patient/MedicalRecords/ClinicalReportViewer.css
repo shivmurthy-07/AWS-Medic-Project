@@ -447,21 +447,9 @@
 	border-top: 1px solid #f1f5f9;
 }
 
-/* Print Optimization */
+/* Print Optimization (scoped for react-to-print iframe so global body * never hides other printed views) */
 @media print {
-	body * {
-		visibility: hidden;
-	}
-
-	.clinical-report-sheet,
-	.clinical-report-sheet * {
-		visibility: visible;
-	}
-
 	.clinical-report-sheet {
-		position: absolute;
-		left: 0;
-		top: 0;
 		width: 100% !important;
 		max-width: 100% !important;
 		box-shadow: none !important;
@@ -473,7 +461,7 @@
 	.clinical-report-toolbar,
 	.radiology-workstation-bar,
 	.radiology-film-footer-meta,
-	.ant-btn {
+	.clinical-report-sheet .ant-btn {
 		display: none !important;
 	}
 

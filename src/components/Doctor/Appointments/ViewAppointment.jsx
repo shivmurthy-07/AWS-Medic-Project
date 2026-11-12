@@ -17,6 +17,7 @@ import { Button, Tag, Tooltip, Spin, Empty, message, Alert } from 'antd';
 import { clickToCopyClipBoard } from '../../../utils/copyClipBoard';
 import { FaPrint, FaCopy, FaUserMd, FaMapMarkerAlt, FaEye, FaFileMedical, FaCheckCircle, FaClock } from 'react-icons/fa';
 import { useReactToPrint } from 'react-to-print';
+import { PRINT_PAGE_STYLE } from '../../../utils/printConfig';
 import IntegratedVideoSession from './IntegratedVideoSession';
 
 /** Safe age in full years from DOB; null if unknown or invalid */
@@ -44,6 +45,7 @@ const ViewAppointment = () => {
 	const handlePrint = useReactToPrint({
 		contentRef: printRef,
 		bodyClass: 'print-agreement',
+		pageStyle: PRINT_PAGE_STYLE,
 		documentTitle: () => (data?.trackingId ? `Appointment-${data.trackingId}` : 'Appointment'),
 	});
 
@@ -144,9 +146,9 @@ const ViewAppointment = () => {
 						<div className="view-appointment-meta text-muted small mb-2">
 							Created {data.createdAt ? moment(data.createdAt).format('LL') : '—'}
 						</div>
-						<Tooltip title="Copy tracking ID">
+						<Tooltip title="Copy Appointment ID">
 							<Button type="default" icon={<FaCopy />} onClick={() => clickToCopyClipBoard(data.trackingId)}>
-								Tracking: <Tag color="success">{data.trackingId || '—'}</Tag>
+								Appointment ID: <Tag color="success">{data.trackingId ? `#${data.trackingId}` : '—'}</Tag>
 							</Button>
 						</Tooltip>
 					</div>
@@ -418,7 +420,7 @@ const ViewAppointment = () => {
 			<div className="view-appointment-page">
 				<div className="container px-3">
 					<div className="view-appointment-toolbar">
-						<Button type="primary" size="large" icon={<FaPrint />} onClick={handlePrint}>
+						<Button type="primary" size="large" icon={<FaPrint />} onClick={() => handlePrint()}>
 							Print / PDF
 						</Button>
 					</div>

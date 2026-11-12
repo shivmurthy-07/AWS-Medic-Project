@@ -9,6 +9,7 @@ import './index.css';
 import { useRef } from "react";
 import { FaPrint } from "react-icons/fa";
 import { useReactToPrint } from "react-to-print";
+import { PRINT_PAGE_STYLE } from "../../../utils/printConfig";
 
 const PrescriptionView = () => {
     const printRef = useRef(null);
@@ -18,6 +19,7 @@ const PrescriptionView = () => {
     const handlePrint = useReactToPrint({
         contentRef: printRef,
         bodyClass: 'print-agreement',
+        pageStyle: PRINT_PAGE_STYLE,
         documentTitle: () => (data?.appointment?.trackingId ? `Prescription-${data.appointment.trackingId}` : 'Prescription'),
     });
 
@@ -70,8 +72,8 @@ const PrescriptionView = () => {
                                 </div>
                             </div>
                             <div className="col-md-6">
-                                <p className="invoice-details">
-                                    <strong>Tracking Id:</strong> {data?.appointment?.trackingId} <br />
+                                <p className="invoice-details" style={{ wordBreak: 'break-all' }}>
+                                    <strong>Appointment ID:</strong> {data?.appointment?.trackingId || data?.appointmentId ? `#${data?.appointment?.trackingId || data?.appointmentId}` : '—'} <br />
                                     <strong>Issued:</strong> {moment(data.createdAt).format('LL')}
                                 </p>
                             </div>
@@ -154,7 +156,7 @@ const PrescriptionView = () => {
 
             <div className="content" style={{ marginTop: '10rem', marginBottom: '7rem' }}>
                 <div className="d-flex justify-content-end" style={{ marginRight: '8rem' }}>
-                    <Button type="primary" icon={<FaPrint />} onClick={handlePrint}>
+                    <Button type="primary" icon={<FaPrint />} onClick={() => handlePrint()}>
                         Print
                     </Button>
                 </div>

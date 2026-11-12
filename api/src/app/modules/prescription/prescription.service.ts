@@ -253,7 +253,15 @@ const getDoctorPrescriptionById = async (user: any): Promise<Prescription[] | nu
         },
         include: {
             medicines: true,
-            patient: true
+            patient: true,
+            appointment: {
+                select: {
+                    trackingId: true,
+                    scheduleDate: true,
+                    scheduleTime: true,
+                    status: true
+                }
+            }
         }
     })
     return result;

@@ -16,14 +16,14 @@ const ChangePassword = () => {
             }
 
             const res = await changePassword({
-                oldPassword: values.oldPassword,
+                oldPassword: values.currentPassword ?? values.oldPassword,
                 newPassword: values.newPassword
             }).unwrap();
 
             message.success(res?.message || 'Password changed successfully!');
             form.resetFields();
         } catch (error) {
-            message.error(error?.data?.message || 'Failed to change password');
+            message.error(error?.data?.message || error?.message || 'Failed to change password');
         }
     };
 

@@ -49,10 +49,15 @@ const TrackDetailPage = ({ data, setShowInfo }) => {
 						<div className="track-detail-hero__label">Appointment located</div>
 						<h1 className="track-detail-hero__title">Your visit at a glance</h1>
 						<div className="track-detail-hero__track">
-							<span className="text-muted small me-1">Tracking ID</span>
-							<code>{data?.trackingId || '—'}</code>
+							<span className="text-muted small me-1">Appointment / Tracking ID</span>
+							<code>{data?.trackingId || data?.id ? `#${data?.trackingId || data?.id}` : '—'}</code>
 							<Tooltip title="Copy ID">
-								<Button type="text" size="small" icon={<FaCopy />} onClick={() => clickToCopyClipBoard(data?.trackingId)} />
+								<Button
+									type="text"
+									size="small"
+									icon={<FaCopy />}
+									onClick={() => clickToCopyClipBoard(data?.trackingId || data?.id)}
+								/>
 							</Tooltip>
 						</div>
 					</div>

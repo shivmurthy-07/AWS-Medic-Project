@@ -258,7 +258,9 @@ const DoctorReportsView = () => {
                 if (record.appointment?.trackingId) {
                     return (
                         <div>
-                            <Tag color="purple">#{record.appointment.trackingId}</Tag>
+                            <Tag color="purple" style={{ whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: 1.35 }}>
+                                #{record.appointment.trackingId}
+                            </Tag>
                             <div className="small text-muted" style={{ fontSize: '11px' }}>
                                 {record.appointment.scheduleDate ? moment(record.appointment.scheduleDate).format('MMM DD, YYYY') : 'Consulted'}
                             </div>
@@ -747,7 +749,9 @@ const PatientReportsView = () => {
                 if (record.appointment?.trackingId) {
                     return (
                         <div>
-                            <Tag color="purple">#{record.appointment.trackingId}</Tag>
+                            <Tag color="purple" style={{ whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: 1.35 }}>
+                                #{record.appointment.trackingId}
+                            </Tag>
                             <div className="small text-muted" style={{ fontSize: '11px' }}>
                                 {record.appointment.scheduleDate ? moment(record.appointment.scheduleDate).format('MMM DD, YYYY') : 'Consulted'}
                             </div>

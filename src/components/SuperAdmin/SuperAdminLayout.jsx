@@ -4,6 +4,7 @@ import { FaBars, FaCalendarCheck, FaChartLine, FaClipboardList, FaSignOutAlt, Fa
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { loggedOut } from '../../service/auth.service';
 import { useSuperAdminLogoutMutation } from '../../redux/api/superAdminApi';
+import BackButton from '../UI/BackButton';
 import './SuperAdmin.css';
 
 const navigation = [
@@ -35,10 +36,13 @@ const SuperAdminLayout = () => {
     return (
         <div className="super-admin">
             <header className="super-admin__topbar">
-                <button className="super-admin__menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">
-                    {menuOpen ? <FaTimes /> : <FaBars />}
-                </button>
-                <NavLink to="/super-admin/dashboard" className="super-admin__brand">MediConnect <span>Platform</span></NavLink>
+                <div className="d-flex align-items-center gap-3">
+                    <button className="super-admin__menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">
+                        {menuOpen ? <FaTimes /> : <FaBars />}
+                    </button>
+                    <BackButton />
+                    <NavLink to="/super-admin/dashboard" className="super-admin__brand">MediConnect <span>Platform</span></NavLink>
+                </div>
                 <div className="super-admin__identity">
                     <span><FaUserMd /> Super Admin</span>
                     <Button type="text" icon={<FaSignOutAlt />} loading={isLoading} onClick={logout}>Sign out</Button>

@@ -42,17 +42,17 @@ describe('booking checkout', () => {
         expect(props.setIsChecked).toHaveBeenCalledWith(true);
     });
 
-    test('simulates a demo payment without returning card details', () => {
+    test('simulates a card payment without returning card details', () => {
         const onDemoPaymentComplete = jest.fn();
         const { rerender, props } = renderCheckout({ onDemoPaymentComplete });
         const futureYear = String(new Date().getFullYear() + 1);
 
-        fireEvent.change(screen.getByLabelText('Name on card'), { target: { value: 'Demo User' } });
-        fireEvent.change(screen.getByLabelText('Dummy card number'), { target: { value: '4242 4242 4242 4242' } });
+        fireEvent.change(screen.getByLabelText('Name on card'), { target: { value: 'Test User' } });
+        fireEvent.change(screen.getByLabelText('Card number'), { target: { value: '4242 4242 4242 4242' } });
         fireEvent.change(screen.getByLabelText('Expiry month'), { target: { value: '12' } });
         fireEvent.change(screen.getByLabelText('Expiry year'), { target: { value: futureYear } });
         fireEvent.change(screen.getByLabelText('CVV'), { target: { value: '123' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Simulate demo payment' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Confirm card payment' }));
 
         expect(onDemoPaymentComplete).toHaveBeenCalledTimes(1);
         expect(onDemoPaymentComplete).toHaveBeenCalledWith(true);

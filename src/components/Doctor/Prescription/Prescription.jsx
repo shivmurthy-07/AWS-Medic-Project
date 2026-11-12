@@ -33,7 +33,10 @@ import {
 	useGetPatientPrescriptionQuery,
 	useCreatePrescriptionMutation,
 } from '../../../redux/api/prescriptionApi';
-import { useGetDoctorAppointmentsQuery } from '../../../redux/api/appointmentApi';
+import {
+	useGetDoctorAppointmentsQuery,
+	useGetPatientAppointmentsQuery,
+} from '../../../redux/api/appointmentApi';
 import { useState } from 'react';
 import moment from 'moment';
 import useAuthCheck from '../../../redux/hooks/useAuthCheck';
@@ -69,11 +72,18 @@ const DoctorPrescriptions = () => {
 	]);
 
 	const appointments = appointmentsData || [];
+	const trackingIdByAppointmentId = new Map(
+		appointments.filter((a) => a?.id && a?.trackingId).map((a) => [a.id, a.trackingId])
+	);
+	const getTrackingId = (record) =>
+		record?.appointment?.trackingId || trackingIdByAppointmentId.get(record?.appointmentId) || record?.appointmentId || '';
 
 	const filteredData = data?.filter((prescription) => {
+		const trackingId = getTrackingId(prescription);
+		const normalizedSearch = searchTerm.toLowerCase().replace(/^#/, '');
 		const matchesSearch =
 			prescription?.disease?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			prescription?.appointment?.trackingId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			trackingId.toLowerCase().includes(normalizedSearch) ||
 			`${prescription?.patient?.firstName} ${prescription?.patient?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
 
 		const matchesDateRange =
@@ -145,8 +155,18 @@ const DoctorPrescriptions = () => {
 		{
 			title: 'Appointment ID',
 			key: 'appointmentId',
-			width: 150,
-			render: (_, record) => <Tag color="#667eea">{record?.appointment?.trackingId || 'N/A'}</Tag>,
+			width: 190,
+			render: (_, record) => {
+				const displayId = getTrackingId(record);
+				return (
+					<Tag
+						color="#667eea"
+						style={{ whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: 1.35 }}
+					>
+						{displayId ? `#${displayId}` : '—'}
+					</Tag>
+				);
+			},
 		},
 		{
 			title: 'Patient',
@@ -267,7 +287,7 @@ const DoctorPrescriptions = () => {
 				<div className="table-toolbar mb-3">
 					<Space wrap>
 						<Input
-							placeholder="Search by patient name, condition, or tracking ID..."
+							placeholder="Search by patient name, condition, or appointment ID..."
 							prefix={<FaSearch />}
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
@@ -425,16 +445,28 @@ const DoctorPrescriptions = () => {
 
 const PatientPrescriptions = () => {
 	const { data, isLoading } = useGetPatientPrescriptionQuery();
+	const { data: patientAppointments } = useGetPatientAppointmentsQuery({});
 	const [searchTerm, setSearchTerm] = useState('');
 	const [selectedPrescription, setSelectedPrescription] = useState(null);
 	const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+	const trackingIdByAppointmentId = new Map(
+		(patientAppointments || []).filter((a) => a?.id && a?.trackingId).map((a) => [a.id, a.trackingId])
+	);
+	const getTrackingId = (record) =>
+		record?.appointment?.trackingId || trackingIdByAppointmentId.get(record?.appointmentId) || record?.appointmentId || '';
+
 	const filtered = data?.filter(
-		(p) =>
-			!searchTerm ||
-			p?.disease?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			p?.appointment?.trackingId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			`${p?.doctor?.firstName} ${p?.doctor?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+		(p) => {
+			const normalizedSearch = searchTerm.toLowerCase().replace(/^#/, '');
+			const trackingId = getTrackingId(p).toLowerCase();
+			return (
+				!searchTerm ||
+				p?.disease?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				trackingId.includes(normalizedSearch) ||
+				`${p?.doctor?.firstName} ${p?.doctor?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+			);
+		}
 	);
 
 	const columns = [
@@ -472,10 +504,20 @@ const PatientPrescriptions = () => {
 			),
 		},
 		{
-			title: 'Tracking ID',
+			title: 'Appointment ID',
 			key: 'tid',
-			width: 140,
-			render: (_, record) => <Tag color="#667eea">#{record?.appointment?.trackingId || 'N/A'}</Tag>,
+			width: 190,
+			render: (_, record) => {
+				const displayId = getTrackingId(record);
+				return (
+					<Tag
+						color="#667eea"
+						style={{ whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: 1.35 }}
+					>
+						{displayId ? `#${displayId}` : '—'}
+					</Tag>
+				);
+			},
 		},
 		{
 			title: 'Prescribed Date',
@@ -525,7 +567,7 @@ const PatientPrescriptions = () => {
 			<Card className="prescription-table-card mb-4">
 				<div className="table-toolbar mb-3">
 					<Input
-						placeholder="Search by condition, doctor, or tracking ID..."
+						placeholder="Search by condition, doctor, or appointment ID..."
 						prefix={<FaSearch />}
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}

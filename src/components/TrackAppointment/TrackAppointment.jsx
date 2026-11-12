@@ -70,9 +70,9 @@ const TrackAppointment = () => {
 
 	const runTrack = useCallback(
 		(raw) => {
-			const v = (raw || '').trim();
+			const v = (raw || '').trim().replace(/^#/, '').trim();
 			if (v.length < MIN_ID_LENGTH) {
-				message.warning(`Enter at least ${MIN_ID_LENGTH} characters (your full tracking ID).`);
+				message.warning(`Enter at least ${MIN_ID_LENGTH} characters (your full Appointment / Tracking ID).`);
 				return;
 			}
 			trackAppointment({ id: v });
@@ -124,7 +124,7 @@ const TrackAppointment = () => {
 			<Header />
 			<SubHeader
 				title="Track your appointment"
-				subtitle="Look up status, schedule, and clinician details with your tracking ID — secure and instant."
+				subtitle="Look up status, schedule, and clinician details with your Appointment / Tracking ID — secure and instant."
 			/>
 
 			<div className="track-page">
@@ -144,13 +144,13 @@ const TrackAppointment = () => {
 														Look up your visit
 													</Title>
 													<Paragraph type="secondary" className="track-page__subtitle mb-0">
-														Use the tracking ID from your booking confirmation (email or SMS). No account is required.
+														Use the Appointment / Tracking ID from your booking confirmation or dashboard. No account is required.
 													</Paragraph>
 												</div>
 											</div>
 
 											<Search
-												placeholder="Paste your tracking ID (e.g. ABC20240315001)"
+												placeholder="Paste your Appointment / Tracking ID (with or without #)"
 												allowClear
 												enterButton={
 													<Button type="primary" icon={<FaSearch />} loading={isLoading}>
@@ -314,7 +314,7 @@ const TrackAppointment = () => {
 											items={[
 												{
 													key: '1',
-													label: 'I don’t have a tracking ID',
+													label: 'I don’t have my Appointment / Tracking ID',
 													children: (
 														<p className="mb-0 text-muted">
 															Check your spam folder for the confirmation email, or sign in as a patient and open
@@ -338,7 +338,7 @@ const TrackAppointment = () => {
 													label: 'Is my information safe?',
 													children: (
 														<p className="mb-0 text-muted">
-															Only someone with your tracking ID can load this summary. Don’t share your ID publicly.
+															Only someone with your Appointment / Tracking ID can load this summary. Don’t share your ID publicly.
 															Recent IDs are stored only in your browser on this device.
 														</p>
 													),

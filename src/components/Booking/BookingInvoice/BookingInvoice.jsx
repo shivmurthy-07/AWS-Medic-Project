@@ -9,6 +9,7 @@ import Header from '../../Shared/Header/Header';
 import { useRef } from "react";
 import { FaPrint } from "react-icons/fa";
 import { useReactToPrint } from "react-to-print";
+import { PRINT_PAGE_STYLE } from "../../../utils/printConfig";
 import { formatCurrency } from '../../../utils/formatCurrency';
 
 const BookingInvoice = () => {
@@ -27,6 +28,7 @@ const BookingInvoice = () => {
     const handlePrint = useReactToPrint({
         contentRef: printRef,
         bodyClass: 'print-agreement',
+        pageStyle: PRINT_PAGE_STYLE,
         documentTitle: () => 'Booking-invoice',
     });
 
@@ -47,8 +49,8 @@ const BookingInvoice = () => {
                                 </div>
                             </div>
                             <div className="col-md-6">
-                                <p className="invoice-details">
-                                    <strong>Order:</strong> #00124 <br />
+                                <p className="invoice-details" style={{ wordBreak: 'break-all' }}>
+                                    <strong>Appointment ID:</strong> #{data?.appointment?.trackingId || data?.appointmentId || data?.id} <br />
                                     <strong>Issued:</strong> {moment(data.createdAt).format('LL')}
                                 </p>
                             </div>
@@ -85,7 +87,7 @@ const BookingInvoice = () => {
                                     <strong className="customer-text">Payment Method</strong>
                                     <p className="invoice-details invoice-details-two">
                                         {data?.paymentMethod === 'demo'
-                                            ? 'Demo card (simulated only)'
+                                            ? 'Pay using card (simulated only)'
                                             : `${data?.paymentType || '—'} · ${data?.paymentMethod || '—'}`}
                                         <br />
                                         {data?.paymentMethod === 'demo' && `Reference: DEMO-${data?.id?.slice(0, 8).toUpperCase()}`}
@@ -153,7 +155,7 @@ const BookingInvoice = () => {
             <Header />
             <div className="content" style={{ marginBottom: '7rem', marginTop:'10rem' }}>
                 <div className="d-flex justify-content-end mb-4" style={{ marginRight: '8rem' }}>
-                    <Button type="primary" icon={<FaPrint />} onClick={handlePrint}>
+                    <Button type="primary" icon={<FaPrint />} onClick={() => handlePrint()}>
                         Print
                     </Button>
                 </div>

@@ -85,7 +85,7 @@ const AdminAppointments = () => {
                     <p><strong>Reason:</strong> {record.reasonForVisit || 'N/A'}</p>
                     <p><strong>Description:</strong> {record.description || 'N/A'}</p>
                     <p><strong>Status:</strong> <Tag color={getStatusColor(record.status)}>{record.status}</Tag></p>
-                    <p><strong>Tracking ID:</strong> {record.trackingId}</p>
+                    <p><strong>Appointment ID:</strong> {record.trackingId || record.id ? `#${record.trackingId || record.id}` : '—'}</p>
                 </div>
             ),
         });
@@ -93,11 +93,18 @@ const AdminAppointments = () => {
 
     const columns = [
         {
-            title: 'Tracking ID',
+            title: 'Appointment ID',
             dataIndex: 'trackingId',
             key: 'trackingId',
-            width: 120,
-            render: (text) => <span className="tracking-id">{text}</span>,
+            width: 190,
+            render: (text, record) => {
+                const displayId = text || record?.id;
+                return (
+                    <span className="tracking-id" style={{ wordBreak: 'break-all' }}>
+                        {displayId ? `#${displayId}` : '—'}
+                    </span>
+                );
+            },
         },
         {
             title: 'Patient',
@@ -222,7 +229,7 @@ const AdminAppointments = () => {
             <Card className="admin-card">
                 <div className="table-toolbar">
                     <Input
-                        placeholder="Search by patient name, email, tracking ID..."
+                        placeholder="Search by patient name, email, appointment ID..."
                         prefix={<FaSearch />}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

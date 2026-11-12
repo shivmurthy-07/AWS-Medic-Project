@@ -69,6 +69,17 @@ const PatientDashboard = () => {
 
     const appointmentColumns = [
         {
+            title: 'Appointment ID',
+            dataIndex: 'trackingId',
+            key: 'trackingId',
+            width: 190,
+            render: (tid) => (
+                <Tag color="purple" style={{ whiteSpace: 'normal', wordBreak: 'break-all', lineHeight: 1.35 }}>
+                    {tid ? `#${tid}` : '—'}
+                </Tag>
+            ),
+        },
+        {
             title: 'Doctor',
             key: 'doctor',
             render: (_, item) => (
@@ -128,10 +139,14 @@ const PatientDashboard = () => {
 
     const invoiceColumns = [
         {
-            title: 'Invoice ID',
-            dataIndex: 'id',
+            title: 'Appointment ID',
             key: 'id',
-            render: (id) => <span className="font-monospace small">{id?.substring(0, 8)}...</span>,
+            width: 190,
+            render: (_, record) => (
+                <span className="font-monospace small" style={{ wordBreak: 'break-all' }}>
+                    #{record?.appointment?.trackingId || record?.appointmentId || record?.id}
+                </span>
+            ),
         },
         {
             title: 'Doctor Fee',
@@ -320,6 +335,11 @@ const PatientDashboard = () => {
                                             <strong>Dr. {p?.doctor?.firstName} {p?.doctor?.lastName}</strong>
                                             <small className="text-muted">{moment(p.createdAt).format('MMM DD')}</small>
                                         </div>
+                                        {p?.appointment?.trackingId && (
+                                            <div className="text-muted small font-monospace mb-1" style={{ wordBreak: 'break-all' }}>
+                                                Appt ID: #{p.appointment.trackingId}
+                                            </div>
+                                        )}
                                         <div className="text-muted small mb-2">{p.disease || p.daignosis || 'General Care'}</div>
                                         <div className="d-flex justify-content-between align-items-center">
                                             <Tag color="cyan">{p.medicines?.length || 0} medicines</Tag>
@@ -352,7 +372,7 @@ const PatientDashboard = () => {
                         {reportsLoading ? (
                             <div className="text-center py-4"><Spin /></div>
                         ) : recentImaging.length === 0 ? (
-                            <Empty description="No imaging reports uploaded yet" />
+                            <Empty description="No imaging reports recorded yet" />
                         ) : (
                             <div className="d-flex flex-column gap-2">
                                 {recentImaging.map((report) => (

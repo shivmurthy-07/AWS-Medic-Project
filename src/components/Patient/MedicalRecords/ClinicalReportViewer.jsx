@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Modal, Button, Tag } from 'antd';
 import {
 	FaPrint,
@@ -12,7 +12,9 @@ import {
 	FaExternalLinkAlt,
 } from 'react-icons/fa';
 import moment from 'moment';
+import { useReactToPrint } from 'react-to-print';
 import { getSanitizedReportFileUrl } from '../../../utils/clinicalProblemMatcher';
+import { PRINT_PAGE_STYLE } from '../../../utils/printConfig';
 import './ClinicalReportViewer.css';
 
 const normalizeFindingsFromRecordResults = (recordResults) => {
@@ -116,6 +118,14 @@ const ClinicalReportViewer = ({ report, open, onClose, onBack }) => {
 		[report?.recordResults]
 	);
 
+	const reportPrintRef = useRef(null);
+	const handlePrint = useReactToPrint({
+		contentRef: reportPrintRef,
+		bodyClass: 'print-agreement',
+		pageStyle: PRINT_PAGE_STYLE,
+		documentTitle: () => (report?.id ? `Medical-Report-${report.id.slice(0, 8)}` : 'Clinical-Report'),
+	});
+
 	if (!report) return null;
 
 	const patientName = report.patient
@@ -160,10 +170,6 @@ const ClinicalReportViewer = ({ report, open, onClose, onBack }) => {
 	const isImagingCategory =
 		String(report.category || '').toUpperCase() === 'IMAGING' ||
 		/x-ray|xray|mri|ct|ultrasound|ecg|ekg|scan/i.test(report.reportType || '');
-
-	const handlePrint = () => {
-		window.print();
-	};
 
 	const handleDownload = () => {
 		if (!cleanFileUrl) return;
@@ -219,7 +225,7 @@ const ClinicalReportViewer = ({ report, open, onClose, onBack }) => {
 							size="small"
 							type="primary"
 							icon={<FaPrint />}
-							onClick={handlePrint}
+							onClick={() => handlePrint()}
 						>
 							Print / Save PDF
 						</Button>
@@ -245,7 +251,7 @@ const ClinicalReportViewer = ({ report, open, onClose, onBack }) => {
 
 				{/* Printable Hospital Letterhead Sheet */}
 				<div className="clinical-report-sheet-container">
-					<div className="clinical-report-sheet">
+					<div className="clinical-report-sheet" ref={reportPrintRef}>
 						{/* Facility Letterhead Header */}
 						<div className="clinical-sheet-header">
 							<div className="clinical-facility-brand">
@@ -270,7 +276,9 @@ const ClinicalReportViewer = ({ report, open, onClose, onBack }) => {
 								<div className="clinical-barcode">{accessionNo}</div>
 								<div className="clinical-sheet-meta">
 									{trackingId ? (
-										<div>Consult Ref: <strong>#{trackingId.slice(0, 12)}</strong></div>
+										<div style={{ wordBreak: 'break-all' }}>
+											Appointment ID: <strong>#{trackingId}</strong>
+										</div>
 									) : null}
 									<div>Status: <strong>{report.appointment?.status || 'Completed'}</strong></div>
 								</div>

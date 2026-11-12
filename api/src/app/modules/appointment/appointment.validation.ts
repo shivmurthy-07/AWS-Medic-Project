@@ -63,7 +63,15 @@ export const appointmentPatientUpdateSchema = z.object({
 }).strict();
 
 export const appointmentTrackingSchema = z.object({
-    id: z.string().trim().min(16).max(64).regex(/^[A-Fa-f0-9]+$/, 'Enter a valid tracking ID'),
+    id: z.string()
+        .trim()
+        .transform((val) => val.replace(/^#/, '').trim())
+        .pipe(
+            z.string()
+                .min(16, 'Enter a valid appointment / tracking ID')
+                .max(64, 'Enter a valid appointment / tracking ID')
+                .regex(/^[A-Fa-f0-9-]+$/, 'Enter a valid appointment / tracking ID')
+        ),
 }).strict();
 
 export const appointmentDoctorListQuerySchema = z.object({

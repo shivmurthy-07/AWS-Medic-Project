@@ -88,6 +88,11 @@ const DoctorDashboard = () => {
 						{record.firstName} {record.lastName}
 					</div>
 					<div className="text-muted small">{record.email}</div>
+					{record.trackingId && (
+						<div className="text-muted small font-monospace" style={{ wordBreak: 'break-all' }}>
+							Appt ID: #{record.trackingId}
+						</div>
+					)}
 				</div>
 			),
 		},

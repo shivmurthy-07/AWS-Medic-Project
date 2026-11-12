@@ -91,7 +91,7 @@ const AdminLayout = ({ children, title = 'Dashboard', breadcrumbs = ['Dashboard'
 								<FaPlus /> <span>Patient</span>
 							</Link>
 							<Link to="/track-appointment" className="admin-quick-nav__btn admin-quick-nav__btn--ghost">
-								Track ID
+								Track Appointment
 							</Link>
 						</div>
 					</nav>

@@ -95,7 +95,7 @@ const BookingSuccess = () => {
 					</div>
 					<h1 className="booking-success-card__title">You’re booked</h1>
 					<p className="booking-success-card__subtitle">
-						We’ve sent your confirmation email. Save your tracking ID below — you’ll need it to check status or
+						We’ve sent your confirmation email. Save your Appointment / Tracking ID below — you’ll need it to check status or
 						reschedule.
 					</p>
 					<span className="booking-success-card__badge">Confirmation email sent</span>
@@ -103,9 +103,9 @@ const BookingSuccess = () => {
 
 				<div className="booking-success-card__body">
 					<div className="booking-success-tracking">
-						<span className="booking-success-tracking__label">Tracking ID</span>
-						<span className="booking-success-tracking__id">{data.trackingId || '—'}</span>
-						<Tooltip title="Copy tracking ID">
+						<span className="booking-success-tracking__label">Appointment / Tracking ID</span>
+						<span className="booking-success-tracking__id">{data.trackingId ? `#${data.trackingId}` : '—'}</span>
+						<Tooltip title="Copy Appointment ID">
 							<Button type="default" icon={<FaCopy />} onClick={handleCopyTracking} disabled={!data.trackingId}>
 								Copy
 							</Button>
@@ -153,7 +153,7 @@ const BookingSuccess = () => {
 								<div className="booking-success-info__label">Status</div>
 								<p className="booking-success-info__value text-capitalize">{data.status || 'Pending'}</p>
 								<p className="booking-success-info__meta">
-									Payment: {demoPayment ? 'Demo transaction (simulated)' : data.paymentStatus || '—'}
+									Payment: {demoPayment ? 'Pay using card (simulated)' : data.paymentStatus || '—'}
 								</p>
 								{demoPayment && (
 									<p className="booking-success-info__meta">

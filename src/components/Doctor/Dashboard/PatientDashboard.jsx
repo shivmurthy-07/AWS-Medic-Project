@@ -105,17 +105,18 @@ const PatientDashboard = () => {
             }
         },
         {
-            title: 'Appointment Id',
+            title: 'Appointment ID',
             dataIndex: "appointment",
             key: 1,
-            render: ({trackingId}) =>{
+            render: (appt, record) => {
+                const displayId = appt?.trackingId || appt?.id || record?.appointmentId;
                 return (
-                    <Tooltip title="Copy Tracking Id">
-                            <Button>
-                                <h6><Tag color="#87d068" className='ms-2 text-uppercase' onClick={() => clickToCopyClipBoard(trackingId)}>{trackingId}</Tag></h6>
-                            </Button>
-                        </Tooltip>
-                )
+                    <Tooltip title="Copy Appointment ID">
+                        <Button>
+                            <h6><Tag color="#87d068" className='ms-2' onClick={() => clickToCopyClipBoard(displayId)}>{displayId ? `#${displayId}` : '—'}</Tag></h6>
+                        </Button>
+                    </Tooltip>
+                );
             }
         },
 

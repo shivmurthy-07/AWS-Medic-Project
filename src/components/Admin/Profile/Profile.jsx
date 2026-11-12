@@ -4,10 +4,12 @@ import { Card, Form, Input, Button, Avatar, message, Tabs } from 'antd';
 import { FaUser, FaLock, FaEnvelope, FaPhone } from 'react-icons/fa';
 import ImageUploadWithCrop from '../../UI/ImageUploadWithCrop';
 import useAuthCheck from '../../../redux/hooks/useAuthCheck';
+import { useChangePasswordMutation } from '../../../redux/api/authApi';
 import './Profile.css';
 
 const Profile = () => {
     const { data: user } = useAuthCheck();
+    const [changePassword] = useChangePasswordMutation();
     const [form] = Form.useForm();
     const [passwordForm] = Form.useForm();
     const [imagePreview, setImagePreview] = useState(user?.img || null);
@@ -32,17 +34,21 @@ const Profile = () => {
     };
 
     const handleChangePassword = async (values) => {
+        if (values.newPassword !== values.confirmPassword) {
+            message.error('Passwords do not match');
+            return;
+        }
         try {
             setLoading(true);
-            if (values.newPassword !== values.confirmPassword) {
-                message.error('Passwords do not match');
-                return;
-            }
-            message.info('Change password API needs implementation');
+            const res = await changePassword({
+                oldPassword: values.currentPassword,
+                newPassword: values.newPassword,
+            }).unwrap();
+            message.success(res?.message || 'Password changed successfully!');
             passwordForm.resetFields();
-            setLoading(false);
         } catch (error) {
-            message.error('Failed to change password');
+            message.error(error?.data?.message || error?.message || 'Failed to change password');
+        } finally {
             setLoading(false);
         }
     };
@@ -149,7 +155,11 @@ const Profile = () => {
                                                 name="newPassword"
                                                 rules={[
                                                     { required: true, message: 'Please enter new password' },
-                                                    { min: 6, message: 'Password must be at least 6 characters' }
+                                                    { min: 8, message: 'Password must be at least 8 characters' },
+                                                    {
+                                                        pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                                                        message: 'Password must contain uppercase, lowercase, and number',
+                                                    }
                                                 ]}
                                             >
                                                 <Input.Password prefix={<FaLock />} />
