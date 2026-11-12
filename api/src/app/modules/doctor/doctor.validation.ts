@@ -1,5 +1,4 @@
 import { Gender } from '@prisma/client';
-import moment from 'moment';
 import { z } from 'zod';
 import { isValidPassword } from '../../../helpers/registrationValidation';
 
@@ -17,19 +16,6 @@ const optionalPhone = z.string()
         // Allow formats: +919876543210, 9876543210 (10 digits), 09876543210, or international 8-15 digits
         return /^(?:\+?[1-9]\d{7,14}|0\d{9,11})$/.test(cleaned);
     }, 'Enter a valid phone number (10-15 digits, optionally with country code)')
-    .nullable()
-    .optional();
-
-const optionalDate = z.string()
-    .trim()
-    .refine((value) => {
-        if (!value || value.trim() === '') return true;
-        const parsed = moment(value, [moment.ISO_8601, 'YYYY-MM-DD', 'YYYY/MM/DD', 'LL'], true);
-        if (!parsed.isValid()) return false;
-        // Date of birth must be in the past and doctor should be at least 20 and under 100 years old
-        const age = moment().diff(parsed, 'years');
-        return age >= 20 && age <= 100;
-    }, 'Enter a valid date of birth (doctor must be at least 20 years old and not in the future)')
     .nullable()
     .optional();
 
@@ -62,7 +48,7 @@ const doctorProfileFields = {
     img: optionalText(2048),
     phone: optionalPhone,
     gender: optionalGender,
-    dob: optionalDate,
+    dob: optionalText(50),
     biography: optionalBiography,
     clinicName: optionalText(200),
     clinicAddress: optionalText(500),
@@ -93,6 +79,10 @@ const doctorProfileFields = {
     inPersonConsultation: z.boolean().optional(),
     hospitalName: optionalText(200),
     hospitalAddress: optionalText(500),
+    verified: z.union([
+        z.boolean(),
+        z.enum(['true', 'false']).transform((v) => v === 'true'),
+    ]).optional(),
 };
 
 export const doctorEducationSchema = z.object({
@@ -131,7 +121,7 @@ export const doctorRegistrationSchema = z.object({
     specialization: z.string().trim().min(1).max(200),
 }).strict();
 
-export const doctorProfileUpdateSchema = z.object(doctorProfileFields).passthrough();
+export const doctorProfileUpdateSchema = z.object(doctorProfileFields);
 
 const optionalQueryText = z.string().trim().min(1).max(100).optional();
 const optionalMoneyFilter = z.string()

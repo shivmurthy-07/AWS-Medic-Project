@@ -8,7 +8,9 @@ import { EmailtTransporter } from "../../../helpers/emailTransporter";
 import * as path from 'path';
 import config from "../../../config";
 import { validatePayload, uuidSchema } from "../../../helpers/validation";
+import { resolveRegisteredPatientId } from "../../../helpers/patientResolver";
 import { FeeService } from "../fee/fee.service";
+import { sanitizeReportRecord } from "../medicalReport/medicalReport.service";
 import {
     appointmentAdminUpdateSchema,
     appointmentCreateSchema,
@@ -20,6 +22,47 @@ import {
 } from "./appointment.validation";
 
 const createTrackingId = () => randomBytes(16).toString('hex').toUpperCase();
+
+const APPOINTMENT_REPORT_INCLUDE = {
+    include: {
+        doctor: {
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                specialization: true,
+                designation: true,
+                registration: true,
+                hospitalName: true,
+                clinicName: true,
+            }
+        },
+        patient: {
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                mobile: true,
+                gender: true,
+                dateOfBirth: true,
+                bloodGroup: true,
+            }
+        }
+    }
+};
+
+const filterCompletedAppointmentReports = <T extends { status?: string | null; medicalReports?: any[] }>(apt: T): T => {
+    const reports = apt?.status === 'Completed' && Array.isArray(apt.medicalReports)
+        ? apt.medicalReports.map(sanitizeReportRecord)
+        : [];
+    return {
+        ...apt,
+        medicalReports: reports,
+    };
+};
 
 const ensureAppointmentSlotAvailable = async (
     tx: Prisma.TransactionClient,
@@ -94,18 +137,17 @@ const createAppointment = async (payload: any, user: any): Promise<Appointments 
     if (!patientInfo.doctorId) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Select a doctor for your appointment.');
     }
-    let validPatientId = user?.role === 'patient' ? user.userId : (patientInfo.patientId || null);
-    if (validPatientId) {
-        const patientExists = await prisma.patient.findUnique({
-            where: { id: validPatientId }
-        });
-        if (!patientExists) {
-            validPatientId = null;
-        }
-    }
+    const normalizedEmail = patientInfo.email ? String(patientInfo.email).trim().toLowerCase() : patientInfo.email;
+    const explicitPatientId = user?.role === 'patient' ? user.userId : (patientInfo.patientId || null);
+    const validPatientId = await resolveRegisteredPatientId({
+        patientId: explicitPatientId,
+        email: normalizedEmail,
+        phone: patientInfo.phone,
+    });
 
     const appointmentData = {
         ...patientInfo,
+        email: normalizedEmail,
         doctorId: patientInfo.doctorId,
         patientId: validPatientId,
     };
@@ -260,10 +302,16 @@ const createAppointmentByUnAuthenticateUser = async (payload: any): Promise<Appo
         throw new ApiError(httpStatus.BAD_REQUEST, 'Select an approved doctor for your appointment.');
     }
     const doctorIdForUnauth = validatePayload(uuidSchema, configuredDoctorId);
+    const normalizedEmail = patientInfo.email ? String(patientInfo.email).trim().toLowerCase() : patientInfo.email;
+    const resolvedPatientId = await resolveRegisteredPatientId({
+        email: normalizedEmail,
+        phone: patientInfo.phone,
+    });
     const appointmentData = {
         ...patientInfo,
+        email: normalizedEmail,
         doctorId: doctorIdForUnauth,
-        patientId: null,
+        patientId: resolvedPatientId,
     };
 
     const result = await prisma.$transaction(async (tx) => {
@@ -327,7 +375,6 @@ const createAppointmentByUnAuthenticateUser = async (payload: any): Promise<Appo
         EmailtTransporter({ pathName, replacementObj, toMail, subject }).catch((err) => {
             console.warn('Appointment email notification skipped:', err?.message || err);
         });
-        return appointment;
         return appointment;
     })
 
@@ -411,13 +458,28 @@ const getAppointment = async (id: string, user: any) => {
     if (!result) {
         return null;
     }
+    if (!result.patientId && (result.email || result.phone)) {
+        const resolvedId = await resolveRegisteredPatientId({
+            email: result.email,
+            phone: result.phone,
+        });
+        if (resolvedId) {
+            const linkedPatient = await prisma.patient.findUnique({ where: { id: resolvedId } });
+            await prisma.appointments.update({
+                where: { id: result.id },
+                data: { patientId: resolvedId },
+            });
+            (result as any).patientId = resolvedId;
+            (result as any).patient = linkedPatient;
+        }
+    }
     if (
         user.role !== 'admin' &&
         (user.role === 'patient' ? result.patientId : result.doctorId) !== user.userId
     ) {
         throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorised to access this appointment.');
     }
-    return result;
+    return filterCompletedAppointmentReports(result);
 }
 
 const getAppointmentConfirmation = async (id: string) => prisma.appointments.findUnique({
@@ -496,15 +558,27 @@ const getPatientAppointmentById = async (user: any): Promise<Appointments[] | nu
     if (!isPatient) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Patient Account is not found !!')
     }
+    if (isPatient.email) {
+        await prisma.appointments.updateMany({
+            where: {
+                patientId: null,
+                email: isPatient.email.trim().toLowerCase(),
+            },
+            data: {
+                patientId: userId,
+            },
+        });
+    }
     const result = await prisma.appointments.findMany({
         where: {
             patientId: userId
         },
         include: {
-            doctor: true
+            doctor: true,
+            medicalReports: APPOINTMENT_REPORT_INCLUDE
         }
     })
-    return result;
+    return result.map(filterCompletedAppointmentReports);
 }
 
 const getPaymentInfoViaAppintmentId = async (id: string, user: any): Promise<any> => {
@@ -694,36 +768,7 @@ const getDoctorAppointmentsById = async (user: any, filter: any): Promise<Appoin
         where: whereConditions,
         include: {
             patient: true,
-            medicalReports: {
-                include: {
-                    doctor: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                            phone: true,
-                            specialization: true,
-                            designation: true,
-                            registration: true,
-                            hospitalName: true,
-                            clinicName: true,
-                        }
-                    },
-                    patient: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                            mobile: true,
-                            gender: true,
-                            dateOfBirth: true,
-                            bloodGroup: true,
-                        }
-                    }
-                }
-            },
+            medicalReports: APPOINTMENT_REPORT_INCLUDE,
             prescription: {
                 select: {
                     id: true
@@ -731,7 +776,7 @@ const getDoctorAppointmentsById = async (user: any, filter: any): Promise<Appoin
             }
         }
     });
-    return result;
+    return result.map(filterCompletedAppointmentReports);
 }
 
 const getDoctorPatients = async (user: any): Promise<any[]> => {
@@ -819,7 +864,7 @@ const getDoctorPatients = async (user: any): Promise<any[]> => {
                         status: apt.status,
                         prescriptionStatus: apt.prescriptionStatus,
                         prescription: apt.prescription,
-                        medicalReports: apt.medicalReports
+                        medicalReports: apt.status === 'Completed' ? apt.medicalReports : []
                     }
                 ]
             };
@@ -837,7 +882,7 @@ const getDoctorPatients = async (user: any): Promise<any[]> => {
                 status: apt.status,
                 prescriptionStatus: apt.prescriptionStatus,
                 prescription: apt.prescription,
-                medicalReports: apt.medicalReports
+                medicalReports: apt.status === 'Completed' ? apt.medicalReports : []
             });
             if (apt.prescriptionStatus === 'issued' || (apt.prescription && apt.prescription.length > 0)) {
                 existing.prescriptionStatus = 'issued';

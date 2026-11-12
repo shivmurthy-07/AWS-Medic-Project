@@ -23,7 +23,8 @@ import {
     message,
     Form,
     Typography,
-    Avatar
+    Avatar,
+    Alert
 } from 'antd';
 import {
     FaFileMedical,
@@ -37,15 +38,13 @@ import {
     FaXRay,
     FaVial,
     FaHeartbeat,
-    FaMagic,
 } from 'react-icons/fa';
 import moment from 'moment';
 import {
-    CLINICAL_PROBLEMS,
     CLINICAL_PROBLEM_TYPES,
     filterReportsByProblem,
-    getGeneratorTemplateForProblem,
     detectProblemCategory,
+    buildConsultationReportDraft,
 } from '../../../utils/clinicalProblemMatcher';
 import './Reports.css';
 
@@ -85,9 +84,11 @@ const DoctorReportsView = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState(undefined);
-    const [problemFilter, setProblemFilter] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
-    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
+    const [problemFilter, setProblemFilter] = useState(CLINICAL_PROBLEM_TYPES.ALL);
+    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.GENERAL_CONSULTATION);
     const [selectedPatientId, setSelectedPatientId] = useState(undefined);
+    const [draftFindings, setDraftFindings] = useState([]);
+    const [selectedAppointmentId, setSelectedAppointmentId] = useState(undefined);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -96,9 +97,10 @@ const DoctorReportsView = () => {
     const reports = reportsData || [];
     const patients = patientsData || [];
 
+    // Strictly list ONLY Completed consultations for the selected patient
     const patientAppointments = useMemo(() => {
         if (!selectedPatientId || !appointmentsData) return [];
-        return appointmentsData.filter(a => a.patientId === selectedPatientId);
+        return appointmentsData.filter(a => a.patientId === selectedPatientId && a.status === 'Completed');
     }, [selectedPatientId, appointmentsData]);
 
     const filteredReports = useMemo(() => {
@@ -120,18 +122,23 @@ const DoctorReportsView = () => {
         return result;
     }, [reports, searchTerm, typeFilter, problemFilter]);
 
-    const handleAutofillForProblem = (problemKey) => {
-        const template = getGeneratorTemplateForProblem(problemKey);
+    const handleAutofillForProblem = (problemKey, apptOverride = null) => {
+        const appt = apptOverride || appointmentsData?.find(a => a.id === selectedAppointmentId) || null;
+        const draft = buildConsultationReportDraft(appt, problemKey);
+        setDraftFindings(draft.findings || []);
         form.setFieldsValue({
-            patientProblem: problemKey,
-            reportTitle: template.reportTitle,
-            reportType: template.reportType,
-            description: template.description + '\n\n' + template.findingsText,
-            fileUrl: template.fileUrl,
-            fileName: template.fileName,
+            patientProblem: draft.problemKey,
+            reportTitle: draft.reportTitle,
+            reportType: draft.reportType,
+            category: draft.category,
+            hospitalOrLab: draft.hospitalOrLab,
+            description: draft.description,
+            doctorComments: draft.doctorComments,
+            fileUrl: null,
+            fileName: null,
             status: 'completed',
         });
-        message.success(`Clinical template loaded for: ${template.reportTitle}`);
+        message.success(`Clinical draft loaded: ${draft.reportTitle}`);
     };
 
     const stats = useMemo(() => {
@@ -145,25 +152,43 @@ const DoctorReportsView = () => {
 
     const handleCreateReport = async (values) => {
         try {
+            const linkedAppt = appointmentsData?.find(a => a.id === values.appointmentId);
+            if (!linkedAppt || linkedAppt.status !== 'Completed') {
+                message.warning('Select a Completed consultation appointment before issuing an official medical report.');
+                return;
+            }
+            const validCategories = new Set(['IMAGING', 'LAB', 'GENERAL', 'OTHER']);
+            const category = validCategories.has(values.category) ? values.category : 'GENERAL';
+
             await createReport({
-                appointmentId: values.appointmentId || null,
+                appointmentId: values.appointmentId,
                 patientId: values.patientId,
                 reportType: values.reportType,
                 reportTitle: values.reportTitle,
+                category,
+                hospitalOrLab: values.hospitalOrLab || null,
+                doctorComments: values.doctorComments || null,
                 description: values.description,
+                recordResults: {
+                    problemKey: selectedProblemInModal,
+                    findings: draftFindings,
+                    impression: values.doctorComments || '',
+                },
                 reportDate: values.reportDate ? values.reportDate.format('YYYY-MM-DD') : moment().format('YYYY-MM-DD'),
                 status: values.status || 'completed',
                 fileUrl: values.fileUrl || null,
                 fileName: values.fileName || null,
             }).unwrap();
 
-            message.success('Medical report generated successfully');
+            message.success('Post-consultation medical report published successfully');
             setIsUploadModalOpen(false);
             form.resetFields();
             setSelectedPatientId(undefined);
+            setSelectedAppointmentId(undefined);
+            setDraftFindings([]);
             refetch();
         } catch (error) {
-            message.error(error?.data?.message || 'Failed to upload report');
+            message.error(error?.data?.message || 'Failed to publish medical report');
         }
     };
 
@@ -392,11 +417,12 @@ const DoctorReportsView = () => {
                                 onChange={setProblemFilter}
                                 style={{ width: 260 }}
                             >
+                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.GENERAL_CONSULTATION}>🏥 General Consultation &amp; Chronic Care</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest &amp; Respiratory</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine &amp; Orthopedic</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal &amp; Digestive</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic</Option>
-                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
                             </Select>
                         </div>
                     </div>
@@ -458,15 +484,14 @@ const DoctorReportsView = () => {
                     <div className="p-3 mb-3 rounded border border-primary bg-light">
                         <div className="d-flex justify-content-between align-items-center mb-2">
                             <strong className="text-primary">
-                                <FaHeartbeat className="me-1" /> Patient Chief Complaint / Problem:
+                                <FaHeartbeat className="me-1" /> Clinical Problem Domain:
                             </strong>
                             <Button
-                                type="primary"
+                                type="default"
                                 size="small"
-                                icon={<FaMagic />}
                                 onClick={() => handleAutofillForProblem(selectedProblemInModal)}
                             >
-                                Auto-Generate Report for this Problem
+                                Load Consultation Draft
                             </Button>
                         </div>
                         <Select
@@ -477,15 +502,14 @@ const DoctorReportsView = () => {
                             }}
                             style={{ width: '100%' }}
                         >
+                            <Option value={CLINICAL_PROBLEM_TYPES.GENERAL_CONSULTATION}>🏥 General Consultation, Chronic Care &amp; Vaccination</Option>
                             <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest Problem (Chest Pain, Cough, Bronchitis)</Option>
                             <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine / Back Problem (Lumbar Stiffness, Sciatica)</Option>
                             <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal Problem (Stomach, Gallbladder, Visceral)</Option>
                             <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic (Fever, Infection, Lipids)</Option>
                         </Select>
                         <small className="text-muted d-block mt-1">
-                            {selectedProblemInModal === CLINICAL_PROBLEM_TYPES.CHEST
-                                ? 'Enforces clinical validity: Generates a verified Chest report (Chest X-Ray) with lung & cardiopulmonary observations.'
-                                : 'Ensures generated report matches the selected patient complaint.'}
+                            Drafts patient-specific structured findings based on the selected Completed consultation without placeholder stock images.
                         </small>
                     </div>
 
@@ -500,6 +524,7 @@ const DoctorReportsView = () => {
                             optionFilterProp="children"
                             onChange={(pId) => {
                                 setSelectedPatientId(pId);
+                                setSelectedAppointmentId(undefined);
                                 form.setFieldsValue({ appointmentId: undefined });
                             }}
                         >
@@ -513,19 +538,21 @@ const DoctorReportsView = () => {
 
                     <Form.Item
                         name="appointmentId"
-                        label="Linked Consultation / Appointment"
+                        label="Completed Consultation / Appointment"
+                        rules={[{ required: true, message: 'Please select a Completed consultation appointment' }]}
+                        help={selectedPatientId && patientAppointments.length === 0 ? 'No Completed consultations found for this patient. Mark an appointment Completed first.' : undefined}
                     >
                         <Select
-                            placeholder={selectedPatientId ? "Select consultation appointment" : "Select a patient first"}
-                            allowClear
+                            placeholder={selectedPatientId ? "Select completed consultation" : "Select a patient first"}
                             disabled={!selectedPatientId}
                             onChange={(apptId) => {
+                                setSelectedAppointmentId(apptId);
                                 const appt = appointmentsData?.find(a => a.id === apptId);
                                 if (appt) {
-                                    const fullText = `${appt.reasonForVisit || ''} ${appt.description || ''}`;
+                                    const fullText = `${appt.reasonForVisit || ''} ${appt.description || ''} ${appt.consultationType || ''}`;
                                     const detected = detectProblemCategory(fullText);
                                     setSelectedProblemInModal(detected);
-                                    handleAutofillForProblem(detected);
+                                    handleAutofillForProblem(detected, appt);
                                 }
                             }}
                         >
@@ -536,6 +563,9 @@ const DoctorReportsView = () => {
                             ))}
                         </Select>
                     </Form.Item>
+                    <Form.Item name="category" hidden><Input /></Form.Item>
+                    <Form.Item name="hospitalOrLab" hidden><Input /></Form.Item>
+                    <Form.Item name="doctorComments" hidden><Input /></Form.Item>
 
                     <div className="row">
                         <div className="col-md-6">
@@ -623,8 +653,7 @@ const PatientReportsView = () => {
     const [createReport, { isLoading: isCreating }] = useCreateMedicalReportMutation();
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState(undefined);
-    const [problemFilter, setProblemFilter] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
-    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
+    const [problemFilter, setProblemFilter] = useState(CLINICAL_PROBLEM_TYPES.ALL);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -650,19 +679,6 @@ const PatientReportsView = () => {
         }
         return result;
     }, [reports, searchTerm, typeFilter, problemFilter]);
-
-    const handleAutofillForProblem = (problemKey) => {
-        const template = getGeneratorTemplateForProblem(problemKey);
-        form.setFieldsValue({
-            patientProblem: problemKey,
-            reportTitle: template.reportTitle,
-            reportType: template.reportType,
-            description: template.description + '\n\n' + template.findingsText,
-            fileUrl: template.fileUrl,
-            fileName: template.fileName,
-        });
-        message.success(`Clinical template loaded for: ${template.reportTitle}`);
-    };
 
     const handleCreateReport = async (values) => {
         try {
@@ -831,11 +847,12 @@ const PatientReportsView = () => {
                                 onChange={setProblemFilter}
                                 style={{ width: 260 }}
                             >
+                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
+                                <Option value={CLINICAL_PROBLEM_TYPES.GENERAL_CONSULTATION}>🏥 General Consultation &amp; Chronic Care</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest &amp; Respiratory</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine &amp; Orthopedic</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal &amp; Digestive</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic</Option>
-                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
                             </Select>
                         </div>
                     </div>
@@ -889,43 +906,17 @@ const PatientReportsView = () => {
                     layout="vertical"
                     onFinish={handleCreateReport}
                     initialValues={{
-                        reportType: 'X-Ray',
+                        reportType: 'Lab Test',
                         reportDate: moment(),
                     }}
                 >
-                    <div className="p-3 mb-3 rounded border border-primary bg-light">
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                            <strong className="text-primary">
-                                <FaHeartbeat className="me-1" /> My Chief Complaint / Problem:
-                            </strong>
-                            <Button
-                                type="primary"
-                                size="small"
-                                icon={<FaMagic />}
-                                onClick={() => handleAutofillForProblem(selectedProblemInModal)}
-                            >
-                                Auto-Generate Report for this Problem
-                            </Button>
-                        </div>
-                        <Select
-                            value={selectedProblemInModal}
-                            onChange={(val) => {
-                                setSelectedProblemInModal(val);
-                                handleAutofillForProblem(val);
-                            }}
-                            style={{ width: '100%' }}
-                        >
-                            <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest Problem (Chest Pain, Cough, Bronchitis)</Option>
-                            <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine / Back Problem (Lumbar Stiffness, Sciatica)</Option>
-                            <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal Problem (Stomach, Gallbladder, Visceral)</Option>
-                            <Option value={CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC}>🩸 Blood &amp; Metabolic (Fever, Infection, Lipids)</Option>
-                        </Select>
-                        <small className="text-muted d-block mt-1">
-                            {selectedProblemInModal === CLINICAL_PROBLEM_TYPES.CHEST
-                                ? 'Enforces clinical validity: Generates a verified Chest report (Chest X-Ray) with lung & cardiopulmonary observations.'
-                                : 'Ensures generated report matches your specified complaint.'}
-                        </small>
-                    </div>
+                    <Alert
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 14 }}
+                        message="Upload an external laboratory or imaging document from your files"
+                        description="Official doctor diagnostic reports are published automatically by your physician after each completed consultation."
+                    />
                     <div className="row">
                         <div className="col-md-6">
                             <Form.Item

@@ -38,9 +38,9 @@ const TreatmentEdit = () => {
     const [addMedicine, setAddMedicine] = useState([]);
     const [nextId, setNextId] = useState(1)
 
-    const defaultDaignosis = data?.daignosis.split(',');
-    const defaultDisease = data?.disease.split(',');
-    const defatulTests = data?.test.split(',');
+    const defaultDaignosis = data?.daignosis ? data.daignosis.split(',').map((item) => item.trim()).filter(Boolean) : [];
+    const defaultDisease = data?.disease ? data.disease.split(',').map((item) => item.trim()).filter(Boolean) : [];
+    const defatulTests = data?.test ? data.test.split(',').map((item) => item.trim()).filter(Boolean) : [];
 
     const addField = (e) => {
         e.preventDefault();

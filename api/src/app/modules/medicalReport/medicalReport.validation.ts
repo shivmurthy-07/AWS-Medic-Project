@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createMedicalReportSchema = z.object({
     appointmentId: z.string().uuid().optional().nullable(),
-    patientId: z.string().uuid().optional(),
+    patientId: z.string().uuid().optional().nullable(),
     doctorId: z.string().uuid().optional().nullable(),
     reportType: z.string().trim().min(1, 'Report type is required'),
     reportTitle: z.string().trim().min(1, 'Report title is required').max(200),

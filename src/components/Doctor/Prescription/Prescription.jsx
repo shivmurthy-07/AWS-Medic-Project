@@ -119,7 +119,7 @@ const DoctorPrescriptions = () => {
 				daignosis: values.daignosis || values.disease,
 				test: values.test || '',
 				instruction: values.instruction || '',
-				followUpdate: values.followUpdate ? values.followUpdate.format('YYYY-MM-DD') : '',
+				followUpdate: values.followUpdate ? values.followUpdate.format('YYYY-MM-DD') : undefined,
 				status: 'Completed',
 				patientType: 'Outpatient',
 				medicine: validMeds.map(m => ({

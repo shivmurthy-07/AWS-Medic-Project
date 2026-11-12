@@ -38,12 +38,10 @@ import {
 } from 'react-icons/fa';
 import moment from 'moment';
 import {
-    CLINICAL_PROBLEMS,
     CLINICAL_PROBLEM_TYPES,
     filterReportsByProblem,
-    getGeneratorTemplateForProblem,
 } from '../../../utils/clinicalProblemMatcher';
-import { FaHeartbeat, FaMagic, FaCheckCircle, FaFilter } from 'react-icons/fa';
+import { FaCheckCircle, FaFilter } from 'react-icons/fa';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -59,8 +57,7 @@ const ImagingReports = () => {
     const [previewDoc, setPreviewDoc] = useState(null);
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('ALL');
-    const [activeProblem, setActiveProblem] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
-    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.CHEST);
+    const [activeProblem, setActiveProblem] = useState(CLINICAL_PROBLEM_TYPES.ALL);
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState([]);
 
@@ -99,23 +96,6 @@ const ImagingReports = () => {
         return filterReportsByProblem(baseImagingReports, activeProblem);
     }, [baseImagingReports, activeProblem]);
 
-    const handleAutofillForProblem = (problemKey) => {
-        const template = getGeneratorTemplateForProblem(problemKey);
-        form.setFieldsValue({
-            patientProblem: problemKey,
-            reportTitle: template.reportTitle,
-            reportType: template.reportType,
-            hospitalOrLab: template.hospitalOrLab,
-            description: template.description,
-            doctorComments: template.doctorComments,
-            fileUrl: template.fileUrl,
-            fileName: template.fileName,
-            testDate: moment(),
-            reportDate: moment(),
-        });
-        message.success(`Clinical template loaded for: ${template.reportTitle}`);
-    };
-
     const handleUploadSubmit = async (values) => {
         try {
             let uploadedFileUrl = '';
@@ -133,8 +113,8 @@ const ImagingReports = () => {
                 fileMime = uploadRes?.data?.fileMimeType || fileList[0].type;
             }
 
-            const finalUrl = uploadedFileUrl || values.fileUrl || null;
-            const finalName = originalFileName || values.fileName || (finalUrl ? 'diagnostic-report.jpg' : null);
+            const finalUrl = uploadedFileUrl || null;
+            const finalName = originalFileName || null;
 
             await createReport({
                 reportTitle: values.reportTitle,
@@ -147,8 +127,8 @@ const ImagingReports = () => {
                 doctorComments: values.doctorComments || null,
                 fileUrl: finalUrl,
                 fileName: finalName,
-                fileSize: fileSize || (finalUrl ? 1850000 : null),
-                fileMimeType: fileMime || 'image/jpeg',
+                fileSize: fileSize || null,
+                fileMimeType: fileMime || null,
             }).unwrap();
 
             message.success('Imaging report uploaded successfully.');
@@ -303,10 +283,10 @@ const ImagingReports = () => {
                                 onChange={setActiveProblem}
                                 style={{ width: 260 }}
                             >
+                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest &amp; Respiratory</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine &amp; Orthopedic</Option>
                                 <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal &amp; Digestive</Option>
-                                <Option value={CLINICAL_PROBLEM_TYPES.ALL}>📋 All Diagnostic Reports</Option>
                             </Select>
                         </div>
                     </div>
@@ -359,41 +339,9 @@ const ImagingReports = () => {
                     width={600}
                 >
                     <Form form={form} layout="vertical" onFinish={handleUploadSubmit}>
-                        <div className="p-3 mb-3 rounded border border-primary bg-light">
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                <strong className="text-primary">
-                                    <FaHeartbeat className="me-1" /> Patient Chief Complaint:
-                                </strong>
-                                <Button
-                                    type="primary"
-                                    size="small"
-                                    icon={<FaMagic />}
-                                    onClick={() => handleAutofillForProblem(selectedProblemInModal)}
-                                >
-                                    Auto-Generate Matched Report
-                                </Button>
-                            </div>
-                            <Select
-                                value={selectedProblemInModal}
-                                onChange={(val) => {
-                                    setSelectedProblemInModal(val);
-                                    handleAutofillForProblem(val);
-                                }}
-                                style={{ width: '100%' }}
-                            >
-                                <Option value={CLINICAL_PROBLEM_TYPES.CHEST}>🫁 Chest Problem (Chest Pain, Cough, Bronchitis)</Option>
-                                <Option value={CLINICAL_PROBLEM_TYPES.SPINE}>🦴 Spine / Back Problem (Lumbar Stiffness, Sciatica)</Option>
-                                <Option value={CLINICAL_PROBLEM_TYPES.ABDOMEN}>🩺 Abdominal Problem (Stomach, Gallbladder, Visceral)</Option>
-                            </Select>
-                            <small className="text-muted d-block mt-1">
-                                {selectedProblemInModal === CLINICAL_PROBLEM_TYPES.CHEST
-                                    ? 'Ensures only a clinically valid Chest report (Chest X-Ray) with lung & cardiac findings is generated.'
-                                    : 'Ensures generated report matches the specified clinical complaint.'}
-                            </small>
+                        <div className="alert alert-info mb-3 small">
+                            Official doctor-ordered consultation imaging reports appear here automatically after your doctor completes your consultation. Use this form only to upload external scans or PDFs from your computer.
                         </div>
-
-                        <Form.Item name="fileUrl" hidden><Input /></Form.Item>
-                        <Form.Item name="fileName" hidden><Input /></Form.Item>
 
                         <Form.Item
                             name="reportTitle"
@@ -450,7 +398,7 @@ const ImagingReports = () => {
                             <TextArea rows={2} placeholder="Physician conclusion / impression..." />
                         </Form.Item>
 
-                        <Form.Item label="Report Scan / Radiograph Document">
+                        <Form.Item label="Report Scan / Radiograph Document" required>
                             <Upload
                                 beforeUpload={(file) => {
                                     const isValidType = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type);
@@ -473,7 +421,7 @@ const ImagingReports = () => {
                                 <Button icon={<FaUpload />}>Select File</Button>
                             </Upload>
                             <div className="small text-muted mt-1">
-                                {form.getFieldValue('fileUrl') ? '✓ Authentic radiograph scan is attached from auto-generator.' : 'Upload your scan file (or use Auto-Generate to load an authentic radiograph).'}
+                                Upload your authentic scan image or PDF (JPG, PNG, WEBP, PDF up to 10MB).
                             </div>
                         </Form.Item>
 
@@ -486,8 +434,9 @@ const ImagingReports = () => {
                                 type="primary"
                                 htmlType="submit"
                                 loading={isCreating || isUploadingFile}
+                                disabled={fileList.length === 0}
                             >
-                                Save &amp; Generate Report
+                                Upload Imaging Report
                             </Button>
                         </div>
                     </Form>

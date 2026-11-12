@@ -1,12 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useGetSingleAppointmentQuery } from '../../../redux/api/appointmentApi';
-import { useGetPatientReportsByDoctorQuery, useCreateMedicalReportMutation } from '../../../redux/api/medicalReportApi';
+import { useGetSingleAppointmentQuery, useUpdateAppointmentMutation } from '../../../redux/api/appointmentApi';
+import useAuthCheck from '../../../redux/hooks/useAuthCheck';
 import ClinicalReportViewer from '../../Patient/MedicalRecords/ClinicalReportViewer';
+import ConsultationReportGeneratorModal from '../Reports/ConsultationReportGeneratorModal';
 import {
 	detectProblemCategory,
-	filterReportsByProblem,
-	getGeneratorTemplateForProblem,
 	CLINICAL_PROBLEM_TYPES,
 } from '../../../utils/clinicalProblemMatcher';
 import Header from '../../Shared/Header/Header';
@@ -14,9 +13,9 @@ import Footer from '../../Shared/Footer/Footer';
 import moment from 'moment';
 import './index.css';
 import './ViewAppointment.css';
-import { Button, Tag, Tooltip, Spin, Empty, message } from 'antd';
+import { Button, Tag, Tooltip, Spin, Empty, message, Alert } from 'antd';
 import { clickToCopyClipBoard } from '../../../utils/copyClipBoard';
-import { FaPrint, FaCopy, FaUserMd, FaMapMarkerAlt, FaEye, FaMagic, FaCheckCircle } from 'react-icons/fa';
+import { FaPrint, FaCopy, FaUserMd, FaMapMarkerAlt, FaEye, FaFileMedical, FaCheckCircle, FaClock } from 'react-icons/fa';
 import { useReactToPrint } from 'react-to-print';
 import IntegratedVideoSession from './IntegratedVideoSession';
 
@@ -36,10 +35,11 @@ function joinLocation(parts) {
 const ViewAppointment = () => {
 	const printRef = useRef(null);
 	const { id } = useParams();
-	const { data, isLoading, isError } = useGetSingleAppointmentQuery(id, { skip: !id });
+	const { role } = useAuthCheck();
+	const { data, isLoading, isError, refetch } = useGetSingleAppointmentQuery(id, { skip: !id });
+	const [updateAppointment, { isLoading: isCompletingConsultation }] = useUpdateAppointmentMutation();
 	const [previewReport, setPreviewReport] = useState(null);
-	const { data: patientReportsData, refetch: refetchReports } = useGetPatientReportsByDoctorQuery(data?.patientId, { skip: !data?.patientId });
-	const [createReport, { isLoading: isGeneratingReport }] = useCreateMedicalReportMutation();
+	const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
 	const handlePrint = useReactToPrint({
 		contentRef: printRef,
@@ -48,44 +48,31 @@ const ViewAppointment = () => {
 	});
 
 	const problemCategory = useMemo(() => {
-		const fullText = `${data?.reasonForVisit || ''} ${data?.description || ''}`;
+		const fullText = `${data?.reasonForVisit || ''} ${data?.description || ''} ${data?.consultationType || ''}`;
 		return detectProblemCategory(fullText);
 	}, [data]);
 
-	const matchingReports = useMemo(() => {
-		const apptReports = data?.medicalReports || [];
-		const patientReports = patientReportsData?.data || patientReportsData || [];
-		const directReports = apptReports.length > 0 ? apptReports : patientReports.filter(r => r.appointmentId === data?.id);
-		if (directReports.length > 0) return directReports;
-		return filterReportsByProblem(patientReports, problemCategory);
-	}, [data, patientReportsData, problemCategory]);
+	const isCompletedConsultation = data?.status === 'Completed';
+	const isDoctor = role === 'doctor';
+	const isBlockedTerminalStatus = ['cancel', 'canceled', 'Patient Not Came'].includes(data?.status);
 
-	const handleGenerateForAppointment = async () => {
-		if (!data?.patientId) {
-			message.warning('This appointment does not have a registered patient account.');
-			return;
-		}
+	// Official consultation reports are strictly scoped to THIS completed consultation
+	const consultationReports = useMemo(() => {
+		if (!isCompletedConsultation) return [];
+		return Array.isArray(data?.medicalReports) ? data.medicalReports : [];
+	}, [data?.medicalReports, isCompletedConsultation]);
+
+	const handleCompleteConsultation = async (openReportBuilderAfter = false) => {
+		if (!data?.id) return;
 		try {
-			const template = getGeneratorTemplateForProblem(problemCategory);
-			await createReport({
-				appointmentId: data.id,
-				patientId: data.patientId,
-				doctorId: data.doctorId || null,
-				reportTitle: template.reportTitle,
-				reportType: template.reportType,
-				category: template.category,
-				hospitalOrLab: template.hospitalOrLab,
-				description: `${template.description}\n\nConsultation Chief Complaint: ${data.reasonForVisit || data.description || 'Clinical consultation'} (Appointment #${data.trackingId})`,
-				doctorComments: template.doctorComments,
-				fileUrl: template.fileUrl,
-				fileName: template.fileName,
-				reportDate: moment().format('YYYY-MM-DD'),
-				status: 'completed',
-			}).unwrap();
-			message.success(`Successfully generated authentic ${template.reportTitle} for this patient!`);
-			if (refetchReports) refetchReports();
+			await updateAppointment({ id: data.id, data: { status: 'Completed' } }).unwrap();
+			message.success('Consultation marked Completed.');
+			await refetch();
+			if (openReportBuilderAfter) {
+				setIsGeneratorOpen(true);
+			}
 		} catch (err) {
-			message.error(err?.data?.message || 'Failed to generate diagnostic report.');
+			message.error(err?.data?.message || 'Could not update consultation status.');
 		}
 	};
 
@@ -283,52 +270,103 @@ const ViewAppointment = () => {
 					</div>
 				</section>
 
-				{/* Clinically Matched Diagnostic Reports for Patient Problem */}
+				{/* Post-Consultation Official Diagnostic & Clinical Reports */}
 				<section className="view-appointment-section">
-					<div className="d-flex flex-wrap justify-content-between align-items-center mb-3">
+					<div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
 						<div>
 							<h2 className="view-appointment-section__title mb-1">
-								{problemCategory === CLINICAL_PROBLEM_TYPES.CHEST ? '🫁' : problemCategory === CLINICAL_PROBLEM_TYPES.SPINE ? '🦴' : problemCategory === CLINICAL_PROBLEM_TYPES.ABDOMEN ? '🩺' : '📋'}{' '}
-								Diagnostic Reports for this Problem
+								<FaFileMedical className="me-2 text-primary" />
+								Post-Consultation Diagnostic &amp; Clinical Reports
 							</h2>
 							<p className="text-muted small mb-0">
-								{problemCategory === CLINICAL_PROBLEM_TYPES.CHEST
-									? 'Clinical Chief Complaint: Chest & Cardiopulmonary Condition. Only valid chest radiographs/ECGs are displayed. Unrelated modalities are filtered out.'
-									: 'Diagnostic reports clinically matched to this visit problem.'}
+								Official clinical reports are authored by the consulting physician after consultation completion and synced to this appointment.
 							</p>
 						</div>
-						{data.patientId && matchingReports.length === 0 && (
+						{isDoctor && isCompletedConsultation && (
 							<Button
 								type="primary"
 								size="small"
-								icon={<FaMagic />}
-								loading={isGeneratingReport}
-								onClick={handleGenerateForAppointment}
+								icon={<FaFileMedical />}
+								onClick={() => setIsGeneratorOpen(true)}
 							>
-								Generate {problemCategory === CLINICAL_PROBLEM_TYPES.CHEST ? 'Chest X-Ray' : 'Diagnostic Report'}
+								Generate Consultation Report
 							</Button>
 						)}
 					</div>
 
-					{matchingReports.length > 0 ? (
+					{!isCompletedConsultation ? (
+						<div className="p-3 bg-light rounded border">
+							<Alert
+								type={isBlockedTerminalStatus ? 'warning' : 'info'}
+								showIcon
+								icon={<FaClock />}
+								message={
+									isBlockedTerminalStatus
+										? `Reports Unavailable (${data.status})`
+										: 'Awaiting Consultation Completion'
+								}
+								description={
+									isBlockedTerminalStatus
+										? `No consultation report can be generated for appointments with status "${data.status}".`
+										: isDoctor
+											? 'Complete the patient consultation first, then generate and publish a customized post-consultation report with patient-specific findings.'
+											: 'Your consulting doctor will review findings and publish the official post-consultation report here once this visit is completed.'
+								}
+							/>
+							{isDoctor && !isBlockedTerminalStatus && (
+								<div className="mt-3 d-flex flex-wrap gap-2 justify-content-end">
+									<Button
+										type="default"
+										loading={isCompletingConsultation}
+										icon={<FaCheckCircle />}
+										onClick={() => handleCompleteConsultation(false)}
+									>
+										Mark Consultation Completed
+									</Button>
+									<Button
+										type="primary"
+										loading={isCompletingConsultation}
+										icon={<FaFileMedical />}
+										onClick={() => handleCompleteConsultation(true)}
+									>
+										Complete &amp; Generate Report
+									</Button>
+								</div>
+							)}
+						</div>
+					) : consultationReports.length > 0 ? (
 						<div className="row g-3">
-							{matchingReports.map((report) => (
+							{consultationReports.map((report) => (
 								<div key={report.id} className="col-12 col-md-6">
 									<div className="card h-100 border p-3 rounded shadow-sm bg-white">
 										<div className="d-flex justify-content-between align-items-start mb-2">
-											<Tag color="cyan">{report.reportType}</Tag>
-											<span className="small text-muted">{moment(report.reportDate || report.createdAt).format('MMM DD, YYYY')}</span>
+											<Tag color="cyan">{report.reportType || 'Clinical Report'}</Tag>
+											<span className="small text-muted">
+												{moment(report.testDate || report.reportDate || report.createdAt).format('MMM DD, YYYY')}
+											</span>
 										</div>
-										<h5 className="fw-bold mb-1 text-dark" style={{ fontSize: '1rem' }}>{report.reportTitle}</h5>
-										<p className="small text-muted mb-2">{report.hospitalOrLab || 'Apex Radio-Diagnostic Center'}</p>
+										<h5 className="fw-bold mb-1 text-dark" style={{ fontSize: '1rem' }}>
+											{report.reportTitle}
+										</h5>
+										<p className="small text-muted mb-2">
+											{report.hospitalOrLab || 'MediConnect Clinical Care Center'}
+										</p>
 										{report.description && (
-											<p className="small text-secondary mb-3" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+											<p
+												className="small text-secondary mb-3"
+												style={{
+													display: '-webkit-box',
+													WebkitLineClamp: 2,
+													WebkitBoxOrient: 'vertical',
+													overflow: 'hidden',
+												}}
+											>
 												{report.description}
 											</p>
 										)}
 										<div className="mt-auto d-flex justify-content-between align-items-center pt-2 border-top">
 											<span className="badge bg-success-subtle text-success small">
-												<FaCheckCircle className="me-1" /> Matched to Problem
+												<FaCheckCircle className="me-1" /> Signed Post-Consultation
 											</span>
 											<Button
 												type="primary"
@@ -346,17 +384,19 @@ const ViewAppointment = () => {
 					) : (
 						<div className="p-3 bg-light rounded text-center border">
 							<p className="text-muted mb-2 small">
-								No diagnostic reports currently on file matching this complaint ({data.reasonForVisit || 'Chest problem'}).
+								Consultation completed ({data.reasonForVisit || 'General Consultation'}).{' '}
+								{isDoctor
+									? 'Generate the official post-consultation report with patient findings.'
+									: 'Waiting for consulting physician to publish the clinical summary.'}
 							</p>
-							{data.patientId && (
+							{isDoctor && (
 								<Button
 									type="primary"
 									size="small"
-									icon={<FaMagic />}
-									loading={isGeneratingReport}
-									onClick={handleGenerateForAppointment}
+									icon={<FaFileMedical />}
+									onClick={() => setIsGeneratorOpen(true)}
 								>
-									Auto-Generate {problemCategory === CLINICAL_PROBLEM_TYPES.CHEST ? 'Chest X-Ray (PA View)' : 'Diagnostic Report'} for this Patient
+									Generate {problemCategory === CLINICAL_PROBLEM_TYPES.CHEST ? 'Chest & Cardiopulmonary' : 'Post-Consultation'} Report
 								</Button>
 							)}
 						</div>
@@ -389,6 +429,15 @@ const ViewAppointment = () => {
 				report={previewReport}
 				open={Boolean(previewReport)}
 				onClose={() => setPreviewReport(null)}
+			/>
+			<ConsultationReportGeneratorModal
+				open={isGeneratorOpen}
+				appointment={data}
+				onClose={() => setIsGeneratorOpen(false)}
+				onSuccess={(createdReport) => {
+					refetch();
+					if (createdReport) setPreviewReport(createdReport);
+				}}
 			/>
 			<Footer />
 		</>

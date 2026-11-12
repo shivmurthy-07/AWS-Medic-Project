@@ -98,7 +98,9 @@ const ProfileSetting = () => {
                 phone: d.phone || d.mobile,
                 gender: d.gender,
                 bloodGroup: d.bloodGroup,
-                dob: d.dob || d.dateOfBirth ? moment(d.dob || d.dateOfBirth) : null,
+                dob: (d.dob || d.dateOfBirth) && moment(d.dob || d.dateOfBirth).isValid()
+                    ? moment(d.dob || d.dateOfBirth)
+                    : null,
                 address: d.address,
                 city: d.city,
                 state: d.state,
@@ -146,21 +148,39 @@ const ProfileSetting = () => {
                 formData.append('file', imageFile);
             }
 
-            const formattedDob = values.dob ? moment(values.dob).format('YYYY-MM-DD') : undefined;
+            const formattedDob = values.dob
+                ? moment(values.dob).format('YYYY-MM-DD')
+                : role === 'doctor' && values.dob === null
+                    ? null
+                    : undefined;
             const cleanPhone = values.phone ? values.phone.trim() : undefined;
-            const dataToSubmit = {
-                ...values,
-                dob: formattedDob,
-                dateOfBirth: formattedDob,
-                phone: cleanPhone,
-                mobile: cleanPhone,
-                ...(role === 'doctor' && {
+
+            let dataToSubmit;
+            if (role === 'doctor') {
+                const { dateOfBirth, mobile, bloodGroup, email, ...doctorValues } = values;
+                dataToSubmit = {
+                    ...doctorValues,
+                    dob: formattedDob,
+                    phone: cleanPhone,
                     country: 'India',
                     services: selectedServices.join(','),
                     biography: values.biography ? values.biography.trim() : undefined,
-                }),
-            };
-            delete dataToSubmit.email;
+                };
+            } else {
+                dataToSubmit = {
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    dateOfBirth: formattedDob,
+                    bloodGroup: values.bloodGroup,
+                    mobile: cleanPhone,
+                    city: values.city,
+                    state: values.state,
+                    zipCode: values.postalCode,
+                    gender: values.gender,
+                    country: values.country,
+                    address: values.address,
+                };
+            }
 
             formData.append('data', JSON.stringify(dataToSubmit));
 
@@ -336,15 +356,12 @@ const ProfileSetting = () => {
                             <Form.Item
                                 label="Date of Birth"
                                 name="dob"
-                                extra={role === 'doctor' ? "Doctor must be at least 21 years old." : "Date of birth cannot be in the future."}
-                                rules={[
-                                    { required: role === 'doctor', message: 'Please select date of birth' },
+                                extra={role === 'doctor' ? undefined : "Date of birth cannot be in the future."}
+                                rules={role === 'doctor' ? [] : [
                                     {
                                         validator: (_, value) => {
                                             if (!value) {
-                                                return role === 'doctor'
-                                                    ? Promise.reject(new Error('Date of birth is required'))
-                                                    : Promise.resolve();
+                                                return Promise.resolve();
                                             }
                                             const m = moment(value);
                                             if (!m.isValid()) {
@@ -352,15 +369,6 @@ const ProfileSetting = () => {
                                             }
                                             if (m.isAfter(moment(), 'day')) {
                                                 return Promise.reject(new Error('Date of birth cannot be in the future'));
-                                            }
-                                            if (role === 'doctor') {
-                                                const age = moment().diff(m, 'years');
-                                                if (age < 21) {
-                                                    return Promise.reject(new Error('Doctor must be at least 21 years old'));
-                                                }
-                                                if (age > 100) {
-                                                    return Promise.reject(new Error('Enter a valid adult date of birth'));
-                                                }
                                             }
                                             return Promise.resolve();
                                         }
@@ -372,13 +380,11 @@ const ProfileSetting = () => {
                                     style={{ width: '100%' }}
                                     format="YYYY-MM-DD"
                                     placeholder="Select Date of Birth (YYYY-MM-DD)"
-                                    disabledDate={(current) => {
-                                        if (!current) return false;
-                                        if (role === 'doctor') {
-                                            return current > moment().subtract(21, 'years') || current < moment().subtract(100, 'years');
-                                        }
-                                        return current > moment().endOf('day');
-                                    }}
+                                    disabledDate={
+                                        role === 'doctor'
+                                            ? undefined
+                                            : (current) => Boolean(current && current > moment().endOf('day'))
+                                    }
                                 />
                             </Form.Item>
                         </div>

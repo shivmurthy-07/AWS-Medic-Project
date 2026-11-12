@@ -25,10 +25,8 @@ import {
 } from 'antd';
 import ClinicalReportViewer from './ClinicalReportViewer';
 import {
-    CLINICAL_PROBLEMS,
     CLINICAL_PROBLEM_TYPES,
     filterReportsByProblem,
-    getGeneratorTemplateForProblem,
 } from '../../../utils/clinicalProblemMatcher';
 import {
     FaVial,
@@ -40,8 +38,6 @@ import {
     FaUpload,
     FaFilePdf,
     FaFileImage,
-    FaHeartbeat,
-    FaMagic,
 } from 'react-icons/fa';
 import moment from 'moment';
 
@@ -60,7 +56,6 @@ const LabReports = () => {
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [activeProblem, setActiveProblem] = useState(CLINICAL_PROBLEM_TYPES.ALL);
-    const [selectedProblemInModal, setSelectedProblemInModal] = useState(CLINICAL_PROBLEM_TYPES.BLOOD_METABOLIC);
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState([]);
 
@@ -98,23 +93,6 @@ const LabReports = () => {
         if (activeProblem === CLINICAL_PROBLEM_TYPES.ALL) return baseLabReports;
         return filterReportsByProblem(baseLabReports, activeProblem);
     }, [baseLabReports, activeProblem]);
-
-    const handleAutofillForProblem = (problemKey) => {
-        const template = getGeneratorTemplateForProblem(problemKey);
-        form.setFieldsValue({
-            patientProblem: problemKey,
-            reportTitle: template.reportTitle,
-            reportType: template.reportType,
-            hospitalOrLab: template.hospitalOrLab,
-            description: template.description,
-            doctorComments: template.doctorComments,
-            fileUrl: template.fileUrl,
-            fileName: template.fileName,
-            testDate: moment(),
-            reportDate: moment(),
-        });
-        message.success(`Clinical template loaded for: ${template.reportTitle}`);
-    };
 
     const handleUploadSubmit = async (values) => {
         try {

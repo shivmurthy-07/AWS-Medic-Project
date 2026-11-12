@@ -60,7 +60,7 @@ const uploadReportFile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getPatientReportsByDoctor = catchAsync(async (req: Request, res: Response) => {
-    const result = await MedicalReportService.getPatientReportsByDoctor(req.params.patientId);
+    const result = await MedicalReportService.getPatientReportsByDoctor(req.params.patientId, req.user);
     sendResponse(res, {
         statusCode: 200,
         message: 'Patient medical reports retrieved successfully',

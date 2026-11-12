@@ -3,6 +3,7 @@ import ApiError from "../../../errors/apiError";
 import prisma from "../../../shared/prisma";
 import { Prescription } from "@prisma/client";
 import { validatePayload, uuidSchema } from "../../../helpers/validation";
+import { resolveRegisteredPatientId } from "../../../helpers/patientResolver";
 import {
     createPrescriptionSchema,
     updatePrescriptionAndAppointmentSchema,
@@ -25,14 +26,23 @@ const createPrescription = async (user: any, paylaod: any): Promise<{message: st
             id: appointmentId
         }
     })
-    if (!isAppointment) { throw new ApiError(httpStatus.NOT_FOUND, 'Appopintment is not found !!') }
+    if (!isAppointment) { throw new ApiError(httpStatus.NOT_FOUND, 'Appointment not found.') }
     if (isAppointment.doctorId !== isDoctor.id) {
         throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorised to prescribe for this appointment.');
     }
-    if (!isAppointment.patientId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'A prescription requires a registered patient account.');
+
+    const resolvedPatientId = await resolveRegisteredPatientId({
+        patientId: isAppointment.patientId,
+        email: isAppointment.email,
+        phone: isAppointment.phone,
+    });
+    if (!resolvedPatientId) {
+        throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `No registered patient account found for "${isAppointment.email || isAppointment.firstName || 'this patient'}". Ask the patient to register with their booking email first.`
+        );
     }
-    const patientId = isAppointment.patientId;
+    const patientId = resolvedPatientId;
 
     await prisma.$transaction(async (tx) => {
         await tx.appointments.update({
@@ -40,6 +50,7 @@ const createPrescription = async (user: any, paylaod: any): Promise<{message: st
                 id: isAppointment.id
             },
             data: {
+                ...(isAppointment.patientId ? {} : { patientId }),
                 isFollowUp: Boolean(followUpdate),
                 status,
                 patientType,

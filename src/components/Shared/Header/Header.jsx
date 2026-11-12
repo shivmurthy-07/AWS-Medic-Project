@@ -12,6 +12,7 @@ const ROLE_META = {
     patient: { label: 'Patient', className: 'nav-popover-role nav-popover-role--patient' },
     doctor: { label: 'Doctor', className: 'nav-popover-role nav-popover-role--doctor' },
     admin: { label: 'Administrator', className: 'nav-popover-role nav-popover-role--admin' },
+    super_admin: { label: 'Super Admin', className: 'nav-popover-role nav-popover-role--admin' },
 };
 
 const Header = () => {
@@ -40,8 +41,13 @@ const Header = () => {
 
     const emailLine = data?.email || token?.email || '';
 
-    const dashboardPath = effectiveRole === 'admin' ? '/admin/dashboard' : '/dashboard';
-    const dashboardLabel = effectiveRole === 'admin' ? 'Dashboard' : 'Dashboard';
+    const dashboardPath =
+        effectiveRole === 'admin'
+            ? '/admin/dashboard'
+            : effectiveRole === 'super_admin'
+            ? '/super-admin/dashboard'
+            : '/dashboard';
+    const dashboardLabel = 'Dashboard';
 
     const handleScroll = () => {
         const currentScroll = window.scrollY;
@@ -58,7 +64,7 @@ const Header = () => {
     }, []);
 
     useEffect(() => {
-        if (authChecked) setIsLogged(true);
+        setIsLogged(Boolean(authChecked));
     }, [authChecked]);
 
     const hanldeSignOut = () => {
@@ -103,6 +109,7 @@ const Header = () => {
                     <HeaderNav
                         isLoggedIn={isLoggedIn}
                         role={effectiveRole}
+                        dashboardPath={dashboardPath}
                         data={data}
                         avatar={avatar}
                         content={content}

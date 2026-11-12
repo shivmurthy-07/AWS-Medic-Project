@@ -31,7 +31,20 @@ const Treatment = () => {
     const [medicineList, setMedicineList] = useState([{ id: 1 }]);
 
     useEffect(() => {
-        const isInputEmpty = !selectAppointmentStatus || !patientStatus || !instruction || !followUpDate || !daignosis.length === 0 || !disease.length === 0 || !medicalCheckup.length === 0;
+        const hasCompleteMedicines =
+            medicineList.length > 0 &&
+            medicineList.every(
+                (item) =>
+                    String(item?.medicine || '').trim() &&
+                    String(item?.dosage || '').trim() &&
+                    String(item?.frequency || '').trim() &&
+                    String(item?.duration || '').trim()
+            );
+        const isInputEmpty =
+            !selectAppointmentStatus ||
+            !patientStatus ||
+            disease.length === 0 ||
+            !hasCompleteMedicines;
         setIsDisable(isInputEmpty);
     }, [selectAppointmentStatus, patientStatus, followUpDate, instruction, medicineList, daignosis, disease, medicalCheckup]);
 
@@ -39,7 +52,8 @@ const Treatment = () => {
 
     const addField = (e) => {
         e.preventDefault();
-        setMedicineList([...medicineList, { id: medicineList.length + 1 }])
+        const nextId = Math.max(...medicineList.map((item) => Number(item?.id) || 0), 0) + 1;
+        setMedicineList([...medicineList, { id: nextId }]);
     }
 
     const removeFromAddTimeSlot = (id) => {
@@ -49,28 +63,51 @@ const Treatment = () => {
     const handleFollowUpChange = (date) => {
         if (date) {
             setFollowUpdate(dayjs(date).format());
+        } else {
+            setFollowUpdate('');
         }
     };
 
     const onSubmit = (data) => {
-        const obj = {};
-        obj.status = selectAppointmentStatus;
-        obj.patientType = patientStatus;
+        if (!selectAppointmentStatus || !patientStatus) {
+            message.error('Please select both Appointment Status and Patient Status.');
+            return;
+        }
+        if (disease.length === 0) {
+            message.error('Please select at least one Disease or condition.');
+            return;
+        }
+        const hasIncompleteMedicine = medicineList.some(
+            (item) =>
+                !String(item?.medicine || '').trim() ||
+                !String(item?.dosage || '').trim() ||
+                !String(item?.frequency || '').trim() ||
+                !String(item?.duration || '').trim()
+        );
+        if (medicineList.length === 0 || hasIncompleteMedicine) {
+            message.error('Please fill in Medicine Name, Dosage, Frequency, and Date Range for every medicine.');
+            return;
+        }
 
-        daignosis.length && (obj["daignosis"] = daignosis.join(','))
-        disease.length && (obj["disease"] = disease.join(','))
-        medicalCheckup.length && (obj["test"] = medicalCheckup.join(','))
-        obj.followUpdate = followUpDate;
-        obj.instruction = instruction;
-        obj.medicine = medicineList;
-        obj.appointmentId = id;
+        const obj = {
+            status: selectAppointmentStatus,
+            patientType: patientStatus,
+            disease: disease.join(','),
+            medicine: medicineList,
+            appointmentId: id,
+        };
+
+        if (daignosis.length) obj["daignosis"] = daignosis.join(',');
+        if (medicalCheckup.length) obj["test"] = medicalCheckup.join(',');
+        if (followUpDate) obj["followUpdate"] = followUpDate;
+        if (instruction?.trim()) obj["instruction"] = instruction.trim();
 
         createPrescription({ data: obj });
     }
 
     useEffect(() => {
         if (!isLoading && isError) {
-            message.error(error?.data?.message);
+            message.error(error?.data?.message || 'Failed to save prescription. Please verify appointment and patient details.');
         }
         if (isSuccess) {
             message.success('Successfully Changed Saved !');

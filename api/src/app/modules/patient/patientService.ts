@@ -31,6 +31,16 @@ export const create = async (payload: any): Promise<any> => {
                         userId: patient.id
                     },
                 });
+                // Automatically link any prior unauthenticated bookings made with this email
+                await tx.appointments.updateMany({
+                    where: {
+                        patientId: null,
+                        email: normalizedEmail,
+                    },
+                    data: {
+                        patientId: patient.id,
+                    },
+                });
                 return {
                     patient,
                     auth,

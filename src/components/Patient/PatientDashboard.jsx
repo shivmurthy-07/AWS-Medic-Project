@@ -182,7 +182,7 @@ const PatientDashboard = () => {
                     </div>
                     <div className="patient-hero-actions d-flex flex-wrap gap-2">
                         <Link to="/doctors">
-                            <Button type="primary" size="large" icon={<FaCalendarPlus />} className="btn-hero-primary">
+                            <Button size="large" icon={<FaCalendarPlus />} className="btn-hero-primary">
                                 Book Appointment
                             </Button>
                         </Link>

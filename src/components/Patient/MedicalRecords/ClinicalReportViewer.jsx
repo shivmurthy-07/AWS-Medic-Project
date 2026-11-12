@@ -1,468 +1,466 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, Button, Tag, Tooltip } from 'antd';
+import { Modal, Button, Tag } from 'antd';
 import {
 	FaPrint,
 	FaDownload,
-	FaTimes,
-	FaAdjust,
-	FaHospital,
 	FaCheckCircle,
-	FaShieldAlt,
-	FaUserMd,
+	FaHospital,
+	FaAdjust,
+	FaTimes,
+	FaFilePdf,
+	FaFileMedical,
+	FaExternalLinkAlt,
 } from 'react-icons/fa';
 import moment from 'moment';
+import { getSanitizedReportFileUrl } from '../../../utils/clinicalProblemMatcher';
 import './ClinicalReportViewer.css';
 
-/** Realistic fallback diagnostic observations for imaging modalities */
-const defaultRadiologyFindings = {
-	'x-ray': {
-		examination: 'Digital Radiography (DR) Chest — Posteroanterior (PA) View',
-		technique: 'Single-view erect full inspiratory digital chest radiograph taken at 120 kVp.',
-		indication: 'Clinical evaluation for respiratory symptoms / routine preoperative medical clearance.',
-		findings: [
-			{ organ: 'Trachea & Mediastinum', observation: 'Trachea is centrally located. Normal mediastinal contours without widening or mass effect.' },
-			{ organ: 'Lungs & Parenchyma', observation: 'Bilateral lung fields appear well-aerated with normal vascular markings. No focal consolidation, pneumonic patch, cavitary lesion, or active tuberculosis focus.' },
-			{ organ: 'Pleura & Sinuses', observation: 'Both costophrenic and cardiophrenic angles are sharp, deep, and clear. No pleural effusion or apical capping identified.' },
-			{ organ: 'Cardiovascular Silhouette', observation: 'Cardiac silhouette is within normal limits. Cardiothoracic ratio (CTR) is 0.46 (Normal < 0.50). Normal aortic knob and pulmonary artery profile.' },
-			{ organ: 'Diaphragm', observation: 'Both hemidiaphragmatic domes demonstrate normal convex contours and physiological position.' },
-			{ organ: 'Thoracic Skeletal Cage', observation: 'Visualised ribs, clavicles, scapulae, and dorsal spine show intact cortical outlines without acute fracture or focal lytic / sclerotic lesion.' },
-		],
-		impression: '1. Normal Digital Chest Radiograph (PA View).\n2. No acute cardiopulmonary parenchymal abnormality or cardiomegaly detected.',
-		doctorSign: 'Dr. Aditya Sharma, MD, DNB (Radio-Diagnosis)',
-		doctorReg: 'KMC Reg. No. 74829 — Consultant Radiologist',
-	},
-	'mri': {
-		examination: 'Magnetic Resonance Imaging (MRI) of Lumbar Spine (L1 - S1)',
-		technique: 'Multi-planar T1-weighted, T2-weighted, and STIR sagittal and axial sequences obtained on a 1.5 Tesla superconducting MRI system.',
-		indication: 'Evaluation of lower lumbar back discomfort and intermittent radicular sensations.',
-		findings: [
-			{ organ: 'Vertebral Alignment', observation: 'Normal physiological lumbar lordosis is maintained. No vertebral subluxation or spondylolisthesis.' },
-			{ organ: 'Vertebral Marrow', observation: 'Vertebral body heights and marrow signal intensities are normal throughout the lumbar spine. No Modic degenerative endplate changes.' },
-			{ organ: 'L1-L2 to L3-L4 Discs', observation: 'Normal intervertebral disc heights and T2 hydration signals. Intact posterior longitudinal ligament. Canal patent.' },
-			{ organ: 'L4-L5 Disc Level', observation: 'Mild disc desiccation noted with a minimal broad-based posterior disc bulge causing slight abutment of the ventral thecal sac. Both neural exit foramina remain patent with free exiting L4 nerve roots.' },
-			{ organ: 'L5-S1 Disc Level', observation: 'Normal disc height and contour. Bilateral exit nerve roots appear unremarkable.' },
-			{ organ: 'Thecal Sac & Conus', observation: 'The conus medullaris terminates at physiological L1-L2 level with normal caliber and homogeneous signal.' },
-		],
-		impression: '1. Mild degenerative disc desiccation at L4-L5 with mild broad-based posterior disc bulge.\n2. No critical spinal canal stenosis or focal compressive radiculopathy.',
-		doctorSign: 'Dr. Ramesh Babu, MD (Radio-Diagnosis)',
-		doctorReg: 'KMC Reg. No. 61943 — Senior Consultant Radiologist',
-	},
-	'ecg': {
-		examination: '12-Lead Standard Electrocardiogram (Resting ECG)',
-		technique: 'Standard limb leads (I, II, III, aVR, aVL, aVF) and precordial leads (V1-V6) recorded at 25 mm/sec, calibration 10 mm/mV.',
-		indication: 'Routine cardiovascular rhythm evaluation.',
-		findings: [
-			{ organ: 'Heart Rate & Rhythm', observation: 'Normal Sinus Rhythm at 74 beats per minute. Regular R-R intervals.' },
-			{ organ: 'P-Wave & PR Interval', observation: 'P wave morphology is normal in Lead II. PR interval: 142 ms (Normal: 120 - 200 ms).' },
-			{ organ: 'QRS Complex', observation: 'Normal QRS axis (+55 degrees). QRS duration: 86 ms (Normal: < 100 ms). No pathological Q waves.' },
-			{ organ: 'ST-T Wave Segment', observation: 'Isoelectric ST segment throughout all 12 leads. No acute ST segment elevation, depression, or pathological T-wave inversion.' },
-			{ organ: 'QT / QTc Interval', observation: 'QT interval: 388 ms, QTc (Bazett formula): 412 ms (Normal: < 440 ms).' },
-		],
-		impression: 'Normal 12-lead resting electrocardiogram. Within physiological limits.',
-		doctorSign: 'Dr. Anand Kumar, MD, DM (Cardiology)',
-		doctorReg: 'KMC Reg. No. 58921 — Consultant Interventional Cardiologist',
-	},
-	'ultrasound': {
-		examination: 'High-Resolution Real-Time Abdominal Ultrasound (USG Abdomen)',
-		technique: 'Curvilinear 3.5–5.0 MHz transducer examination of abdominal viscera.',
-		indication: 'Abdominal screening and general health checkup.',
-		findings: [
-			{ organ: 'Liver', observation: 'Liver is normal in size (13.8 cm span) with homogeneous parenchymal echotexture. No focal mass lesion, cyst, or intrahepatic biliary duct dilation.' },
-			{ organ: 'Gallbladder & CBD', observation: 'Gallbladder is well distended with thin walls (< 3 mm). Lumen is clear with no calculus. Common bile duct measures 3.8 mm (normal).' },
-			{ organ: 'Pancreas & Spleen', observation: 'Pancreas shows normal parenchymal thickness and acoustic texture. Spleen is normal in size (9.6 cm) without focal parenchymal lesions.' },
-			{ organ: 'Bilateral Kidneys', observation: 'Both kidneys are normal in size, shape, and cortical thickness. Corticomedullary differentiation is well preserved. No hydronephrosis, calculus, or solid mass.' },
-			{ organ: 'Urinary Bladder', observation: 'Bladder lumen is well-distended with smooth, regular mucosal walls. No intraluminal lesion.' },
-		],
-		impression: 'Normal ultrasound examination of upper and lower abdomen.',
-		doctorSign: 'Dr. Sneha Hegde, MD (Radio-Diagnosis)',
-		doctorReg: 'KMC Reg. No. 80412 — Consultant Sonologist',
-	},
+const normalizeFindingsFromRecordResults = (recordResults) => {
+	if (!recordResults || typeof recordResults !== 'object') return [];
+
+	// Preferred format: { findings: [{ parameter, finding/value, reference, status }] }
+	if (Array.isArray(recordResults.findings)) {
+		return recordResults.findings
+			.filter((row) => row && (row.parameter || row.finding || row.value))
+			.map((row) => ({
+				parameter: row.parameter || row.label || 'Observation',
+				finding: row.finding || row.value || row.result || '-',
+				reference: row.reference || row.range || row.referenceRange || '-',
+				status: row.status || row.flag || 'Normal',
+			}));
+	}
+
+	// Array directly
+	if (Array.isArray(recordResults)) {
+		return recordResults
+			.filter((row) => row && (row.parameter || row.finding || row.value))
+			.map((row) => ({
+				parameter: row.parameter || row.label || 'Observation',
+				finding: row.finding || row.value || row.result || '-',
+				reference: row.reference || row.range || row.referenceRange || '-',
+				status: row.status || row.flag || 'Normal',
+			}));
+	}
+
+	// Key-value map (skip metadata keys like problemKey, impression)
+	const META_KEYS = new Set(['problemKey', 'impression', 'notes', 'summary', 'vitals']);
+	const rows = [];
+
+	if (recordResults.vitals && typeof recordResults.vitals === 'object') {
+		Object.entries(recordResults.vitals).forEach(([k, v]) => {
+			if (v !== undefined && v !== null && String(v).trim() !== '') {
+				rows.push({
+					parameter: k,
+					finding: String(v),
+					reference: 'Vital Sign',
+					status: 'Recorded',
+				});
+			}
+		});
+	}
+
+	Object.entries(recordResults).forEach(([key, val]) => {
+		if (META_KEYS.has(key)) return;
+		if (val && typeof val === 'object' && !Array.isArray(val)) {
+			const valStr = [val.value ?? val.result ?? val.finding, val.unit].filter(Boolean).join(' ');
+			rows.push({
+				parameter: key,
+				finding: valStr || '-',
+				reference: val.reference || val.range || val.normal || '-',
+				status: val.flag || val.status || 'Normal',
+			});
+		} else if (val !== undefined && val !== null && String(val).trim() !== '') {
+			rows.push({
+				parameter: key,
+				finding: String(val),
+				reference: '-',
+				status: 'Recorded',
+			});
+		}
+	});
+
+	return rows;
 };
 
-const ClinicalReportViewer = ({ report, open, onClose }) => {
-	const [isInverted, setIsInverted] = useState(false);
+const getStatusTagColor = (statusText) => {
+	const lower = String(statusText || '').toLowerCase();
+	if (lower.includes('high') || lower.includes('abnormal') || lower.includes('elevated') || lower.includes('critical') || lower.includes('positive')) {
+		return 'red';
+	}
+	if (lower.includes('low') || lower.includes('borderline') || lower.includes('attention') || lower.includes('mild')) {
+		return 'orange';
+	}
+	if (lower.includes('normal') || lower.includes('clear') || lower.includes('intact') || lower.includes('stable')) {
+		return 'green';
+	}
+	return 'blue';
+};
 
-	const reportTypeLower = (report?.reportType || '').toLowerCase();
-	const isImaging =
-		reportTypeLower.includes('x-ray') ||
-		reportTypeLower.includes('mri') ||
-		reportTypeLower.includes('ct') ||
-		reportTypeLower.includes('scan') ||
-		reportTypeLower.includes('ultrasound') ||
-		reportTypeLower.includes('ecg') ||
-		report?.category?.toUpperCase() === 'IMAGING';
+const ClinicalReportViewer = ({ report, open, onClose, onBack }) => {
+	const [invertContrast, setInvertContrast] = useState(false);
 
-	// Determine matched template for structured radiology observations
-	const radiologyTemplate = useMemo(() => {
-		if (reportTypeLower.includes('x-ray')) return defaultRadiologyFindings['x-ray'];
-		if (reportTypeLower.includes('mri')) return defaultRadiologyFindings['mri'];
-		if (reportTypeLower.includes('ecg')) return defaultRadiologyFindings['ecg'];
-		if (reportTypeLower.includes('ultrasound') || reportTypeLower.includes('sonogram'))
-			return defaultRadiologyFindings['ultrasound'];
-		return defaultRadiologyFindings['x-ray'];
-	}, [reportTypeLower]);
+	const handleClose = onClose || onBack || (() => {});
+	const isModalOpen = typeof open === 'boolean' ? open : Boolean(report);
 
-	// Format lab results if stored in recordResults JSON
-	const labResultsList = useMemo(() => {
-		if (!report?.recordResults || typeof report.recordResults !== 'object') {
-			return null;
-		}
-		return Object.entries(report.recordResults).map(([testName, val]) => {
-			const str = String(val);
-			let resultVal = str;
-			let refRange = 'Biological Reference Range';
-			let unit = '—';
-			let flag = 'NORMAL';
+	const cleanFileUrl = useMemo(() => getSanitizedReportFileUrl(report), [report]);
 
-			if (str.includes('(')) {
-				const parts = str.split('(');
-				resultVal = parts[0].trim();
-				refRange = parts[1].replace(')', '').trim();
-			}
+	const isPdfFile = useMemo(() => {
+		if (!cleanFileUrl) return false;
+		const mime = String(report?.fileMimeType || '').toLowerCase();
+		const name = String(report?.fileName || cleanFileUrl).toLowerCase();
+		return mime.includes('pdf') || name.endsWith('.pdf');
+	}, [cleanFileUrl, report]);
 
-			// Extract common units
-			if (resultVal.includes('mg/dL')) {
-				unit = 'mg/dL';
-				resultVal = resultVal.replace('mg/dL', '').trim();
-			} else if (resultVal.includes('g/dL')) {
-				unit = 'g/dL';
-				resultVal = resultVal.replace('g/dL', '').trim();
-			} else if (resultVal.includes('%')) {
-				unit = '%';
-				resultVal = resultVal.replace('%', '').trim();
-			} else if (resultVal.includes('cells/mcL') || resultVal.includes('/mcL')) {
-				unit = 'cells/mcL';
-				resultVal = resultVal.replace(/cells\/mcL|\/mcL/, '').trim();
-			} else if (resultVal.includes('mil/mcL')) {
-				unit = '10^6/mcL';
-				resultVal = resultVal.replace('mil/mcL', '').trim();
-			} else if (resultVal.includes('mm/1st hr')) {
-				unit = 'mm/1st hr';
-				resultVal = resultVal.replace('mm/1st hr', '').trim();
-			}
-
-			// Detect flagged status
-			const lowerVal = str.toLowerCase();
-			if (lowerVal.includes('high') || lowerVal.includes('elevated')) {
-				flag = 'HIGH';
-			} else if (lowerVal.includes('low') || lowerVal.includes('deficient')) {
-				flag = 'LOW';
-			}
-
-			return { testName, resultVal, refRange, unit, flag };
-		});
-	}, [report]);
+	const structuredFindings = useMemo(
+		() => normalizeFindingsFromRecordResults(report?.recordResults),
+		[report?.recordResults]
+	);
 
 	if (!report) return null;
 
 	const patientName = report.patient
-		? [report.patient.firstName, report.patient.lastName].filter(Boolean).join(' ')
-		: 'Patient Record';
+		? `${report.patient.firstName || ''} ${report.patient.lastName || ''}`.trim() || 'Patient'
+		: 'Patient';
 
-	const patientAge = report.patient?.dateOfBirth && moment(report.patient.dateOfBirth).isValid()
+	const patientAge = report.patient?.dateOfBirth
 		? `${moment().diff(moment(report.patient.dateOfBirth), 'years')} Yrs`
-		: (report.patient ? 'Adult' : '—');
+		: null;
+	const patientGender = report.patient?.gender || null;
+	const demographicsText = [patientAge, patientGender].filter(Boolean).join(' / ') || 'Adult / Not Specified';
 
-	const patientGender = report.patient?.gender
-		? report.patient.gender.charAt(0).toUpperCase() + report.patient.gender.slice(1)
-		: (report.patient ? 'Not Specified' : '—');
+	const patientUhid = report.patient?.id
+		? `UHID-${report.patient.id.slice(0, 8).toUpperCase()}`
+		: 'UHID-VERIFIED';
 
 	const doctorName = report.doctor
-		? `Dr. ${[report.doctor.firstName, report.doctor.lastName].filter(Boolean).join(' ')}`
-		: (isImaging ? 'Dr. Aditya Sharma, MD' : 'Dr. Shweta Rao, MD');
+		? `Dr. ${report.doctor.firstName || ''} ${report.doctor.lastName || ''}`.trim()
+		: 'Attending Physician';
 
-	const doctorSpec = report.doctor?.specialization
-		? report.doctor.specialization
-		: (isImaging ? 'Radio-Diagnosis & Imaging' : 'Clinical Pathology');
-
-	const doctorReg = report.doctor?.registration
-		? `Reg. No. ${report.doctor.registration}`
-		: (isImaging ? radiologyTemplate.doctorReg : 'KMC Reg. No. 64281');
-
-	const accessionNo = `ACC-${(report.id || 'REP').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()}`;
-	const uhidNo = `UHID-${(report.patientId || 'PT').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()}`;
+	const doctorCredentials = [
+		report.doctor?.designation,
+		report.doctor?.specialization,
+		report.doctor?.registration ? `Reg. No: ${report.doctor.registration}` : null,
+	]
+		.filter(Boolean)
+		.join(' · ') || 'Registered Medical Practitioner';
 
 	const facilityName =
 		report.hospitalOrLab ||
-		(isImaging ? 'Apex Radio-Diagnostic & Imaging Center' : 'Apollo Clinical Diagnostics & Pathology Lab');
+		report.doctor?.hospitalName ||
+		report.doctor?.clinicName ||
+		'MediConnect Outpatient Clinic & Diagnostics';
 
-	const testDateFormatted = moment(report.testDate || report.reportDate || report.createdAt).format('DD MMM YYYY');
-	const reportDateFormatted = moment(report.reportDate || report.createdAt).format('DD MMM YYYY, hh:mm A');
+	const formattedDate = report.testDate || report.reportDate || report.createdAt
+		? moment(report.testDate || report.reportDate || report.createdAt).format('DD MMM YYYY')
+		: moment().format('DD MMM YYYY');
+
+	const accessionNo = report.id ? `RPT-${report.id.slice(0, 8).toUpperCase()}` : 'RPT-OFFICIAL';
+	const trackingId = report.appointment?.trackingId || null;
+
+	const isImagingCategory =
+		String(report.category || '').toUpperCase() === 'IMAGING' ||
+		/x-ray|xray|mri|ct|ultrasound|ecg|ekg|scan/i.test(report.reportType || '');
 
 	const handlePrint = () => {
 		window.print();
 	};
 
+	const handleDownload = () => {
+		if (!cleanFileUrl) return;
+		const link = document.createElement('a');
+		link.href = cleanFileUrl;
+		link.target = '_blank';
+		link.rel = 'noopener noreferrer';
+		if (report.fileName) {
+			link.download = report.fileName;
+		}
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
+
 	return (
 		<Modal
-			open={open}
-			onCancel={onClose}
+			open={isModalOpen}
+			onCancel={handleClose}
 			footer={null}
-			width={880}
+			width={900}
 			centered
-			wrapClassName="clinical-report-modal"
+			closable={false}
 			destroyOnClose
+			className="clinical-report-modal"
 		>
 			<div className="clinical-report-wrapper">
-				{/* Top toolbar */}
+				{/* Dark Clinical Action Toolbar */}
 				<div className="clinical-report-toolbar">
 					<div className="clinical-report-toolbar__title">
-						<FaHospital className="text-info" />
-						<span>Official Medical Diagnostic Record</span>
-						<Tag color="cyan" className="ms-2">{report.reportType}</Tag>
+						<FaFileMedical style={{ color: '#38bdf8' }} />
+						<span>Official Post-Consultation Diagnostic Record</span>
+						<Tag color="cyan" style={{ marginLeft: 4 }}>
+							{report.reportType || 'Clinical Report'}
+						</Tag>
 					</div>
-
 					<div className="clinical-report-toolbar__actions">
-						{isImaging && (
-							<Tooltip title="Toggle radiological negative/positive film contrast">
-								<Button
-									size="small"
-									type="default"
-									icon={<FaAdjust />}
-									onClick={() => setIsInverted((prev) => !prev)}
-								>
-									{isInverted ? 'Normal View' : 'Invert Contrast'}
-								</Button>
-							</Tooltip>
+						{cleanFileUrl && !isPdfFile && (
+							<Button
+								size="small"
+								icon={<FaAdjust />}
+								onClick={() => setInvertContrast((prev) => !prev)}
+								style={{
+									background: invertContrast ? '#0284c7' : '#1e293b',
+									color: '#fff',
+									borderColor: '#334155',
+								}}
+							>
+								{invertContrast ? 'Standard View' : 'Invert Contrast'}
+							</Button>
 						)}
-
-						<Button size="small" type="primary" icon={<FaPrint />} onClick={handlePrint}>
-							Print Report / Save PDF
+						<Button
+							size="small"
+							type="primary"
+							icon={<FaPrint />}
+							onClick={handlePrint}
+						>
+							Print / Save PDF
 						</Button>
-
-						{report.fileUrl && (
-							<a href={report.fileUrl} download={report.fileName || 'report'} target="_blank" rel="noreferrer">
-								<Button size="small" icon={<FaDownload />}>Download File</Button>
-							</a>
+						{cleanFileUrl && (
+							<Button
+								size="small"
+								icon={<FaDownload />}
+								onClick={handleDownload}
+								style={{ background: '#1e293b', color: '#fff', borderColor: '#334155' }}
+							>
+								Download Attachment
+							</Button>
 						)}
-
-						<Button size="small" type="text" className="text-white" icon={<FaTimes />} onClick={onClose} />
+						<Button
+							size="small"
+							type="text"
+							icon={<FaTimes />}
+							onClick={handleClose}
+							style={{ color: '#cbd5e1' }}
+						/>
 					</div>
 				</div>
 
-				{/* Scrollable Clinical Sheet */}
+				{/* Printable Hospital Letterhead Sheet */}
 				<div className="clinical-report-sheet-container">
-					<div className="clinical-report-sheet" id="printable-clinical-report">
-						{/* Official Hospital Header */}
+					<div className="clinical-report-sheet">
+						{/* Facility Letterhead Header */}
 						<div className="clinical-sheet-header">
 							<div className="clinical-facility-brand">
-								<div className="clinical-facility-logo">&#x271A;</div>
+								<div className="clinical-facility-logo">
+									<FaHospital />
+								</div>
 								<div>
 									<h2 className="clinical-facility-name">{facilityName}</h2>
 									<p className="clinical-facility-sub">
-										{isImaging
-											? 'Department of Radio-Diagnosis & Medical Imaging'
-											: 'Department of Clinical Pathology & Laboratory Medicine'}
+										{report.category === 'LAB'
+											? 'Department of Clinical Pathology & Laboratory Medicine'
+											: isImagingCategory
+												? 'Department of Radio-Diagnosis & Clinical Imaging'
+												: 'Department of Outpatient Clinical Care'}
 									</p>
 									<p className="clinical-facility-addr">
-										NABL &amp; NABH Accredited Diagnostic Healthcare Center · ISO 15189 Certified
-										<br />
-										100 Feet Road, Indiranagar, Bangalore - 560038 · Tel: +91 80 4123 9000
+										Verified Electronic Medical Record · MediConnect Healthcare Network
 									</p>
 								</div>
 							</div>
-
 							<div className="clinical-sheet-accreditation">
-								<div className="clinical-barcode">||| | |||| || | |||| |||</div>
+								<div className="clinical-barcode">{accessionNo}</div>
 								<div className="clinical-sheet-meta">
-									<strong>Accession:</strong> {accessionNo}
-									<br />
-									<strong>Status:</strong> Verified Final
+									{trackingId ? (
+										<div>Consult Ref: <strong>#{trackingId.slice(0, 12)}</strong></div>
+									) : null}
+									<div>Status: <strong>{report.appointment?.status || 'Completed'}</strong></div>
 								</div>
 							</div>
 						</div>
 
-						{/* Patient Demographics Table */}
+						{/* Patient & Consultation Demographics */}
 						<div className="clinical-demographics-box">
 							<div className="clinical-demo-item">
 								<span className="clinical-demo-label">Patient Name</span>
 								<span className="clinical-demo-val">{patientName}</span>
 							</div>
-
 							<div className="clinical-demo-item">
 								<span className="clinical-demo-label">Age / Gender</span>
-								<span className="clinical-demo-val">{patientAge} / {patientGender}</span>
+								<span className="clinical-demo-val">{demographicsText}</span>
 							</div>
-
 							<div className="clinical-demo-item">
 								<span className="clinical-demo-label">Patient UHID / MRN</span>
-								<span className="clinical-demo-val">{uhidNo}</span>
+								<span className="clinical-demo-val">{patientUhid}</span>
 							</div>
-
 							<div className="clinical-demo-item">
-								<span className="clinical-demo-label">Referring Physician</span>
+								<span className="clinical-demo-label">Consulting Physician</span>
 								<span className="clinical-demo-val">{doctorName}</span>
 							</div>
-
 							<div className="clinical-demo-item">
-								<span className="clinical-demo-label">Date of Study / Collection</span>
-								<span className="clinical-demo-val">{testDateFormatted}</span>
+								<span className="clinical-demo-label">Date of Evaluation</span>
+								<span className="clinical-demo-val">{formattedDate}</span>
 							</div>
-
 							<div className="clinical-demo-item">
-								<span className="clinical-demo-label">Report Authentication</span>
-								<span className="clinical-demo-val text-success">
-									<FaCheckCircle className="me-1" /> Verified &amp; Signed Out
-								</span>
+								<span className="clinical-demo-label">Blood Group</span>
+								<span className="clinical-demo-val">{report.patient?.bloodGroup || 'Not Recorded'}</span>
 							</div>
 						</div>
 
 						{/* Report Title Banner */}
 						<div className="clinical-report-title-banner">
-							<h3>{report.reportTitle}</h3>
-							<p>Modal: {report.reportType} · Modality Category: {report.category || 'Clinical Examination'}</p>
+							<h3>{report.reportTitle || 'Clinical Diagnostic Report'}</h3>
+							<p>
+								Modality: {report.reportType || 'Consultation Summary'} · Category: {report.category || 'GENERAL'}
+							</p>
 						</div>
 
-						{/* Clinical Indication */}
-						{report.description && (
-							<div className="mb-3 small">
-								<strong>Clinical Indication &amp; Reason for Study:</strong>
-								<p className="text-muted mb-0 mt-1">{report.description}</p>
+						{/* Chief Complaint / Indication */}
+						{(report.description || report.appointment?.reasonForVisit) && (
+							<div>
+								<h4 className="clinical-section-heading">Clinical Indication & Reason for Consultation</h4>
+								<p style={{ fontSize: '0.86rem', color: '#334155', lineHeight: 1.6, marginBottom: '1rem' }}>
+									{report.appointment?.reasonForVisit && (
+										<span style={{ display: 'block', marginBottom: 4 }}>
+											<strong>Chief Complaint:</strong> {report.appointment.reasonForVisit}
+										</span>
+									)}
+									{report.description}
+								</p>
 							</div>
 						)}
 
-						{/* =========================================================
-						    CASE A: Imaging Radiograph Workstation
-						   ========================================================= */}
-						{isImaging && (
-							<div>
-								{/* Diagnostic Radiographic Lightbox View */}
-								{report.fileUrl && (
-									<div className="radiology-film-workstation">
-										<div className="radiology-workstation-bar">
-											<span>PACS Diagnostic Film Viewer · 120 kVp Digital Sensor</span>
-											<span>Contrast: {isInverted ? 'Bone Inverted' : 'Standard Radiograph'}</span>
+						{/* Patient-Specific Uploaded Diagnostic File (NEVER fake stock imagery) */}
+						{cleanFileUrl && isPdfFile && (
+							<div
+								style={{
+									background: '#f8fafc',
+									border: '1px solid #cbd5e1',
+									borderRadius: 8,
+									padding: '0.9rem 1.15rem',
+									marginBottom: '1.25rem',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'space-between',
+									gap: 12,
+								}}
+							>
+								<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+									<FaFilePdf style={{ fontSize: 22, color: '#dc2626' }} />
+									<div>
+										<div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem' }}>
+											{report.fileName || 'Attached Clinical Document (PDF)'}
 										</div>
-
-										<div className="radiology-workstation-film">
-											<span className="radiology-marker radiology-marker--r">R</span>
-											<span className="radiology-marker radiology-marker--l">L</span>
-											<img
-												src={report.fileUrl}
-												alt="Diagnostic Radiograph"
-												className={`radiology-film-img ${isInverted ? 'radiology-film-img--inverted' : ''}`}
-											/>
-										</div>
-
-										<div className="radiology-film-footer-meta">
-											<span>Study ID: {accessionNo}</span>
-											<span>Erect Posteroanterior View · Full Inspiration</span>
-											<span>Digital Radiography (DR) System</span>
+										<div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+											Patient-specific uploaded diagnostic attachment
 										</div>
 									</div>
-								)}
-
-								{/* Systematic Radiology Examination Observations */}
-								<div className="clinical-section-heading">Detailed Radiology Examination &amp; Findings</div>
-								<div className="clinical-findings-grid">
-									{radiologyTemplate.findings.map((item, idx) => (
-										<div key={idx} className="clinical-finding-row">
-											<strong>• {item.organ}:</strong> {item.observation}
-										</div>
-									))}
 								</div>
+								<Button
+									type="primary"
+									size="small"
+									icon={<FaExternalLinkAlt />}
+									onClick={handleDownload}
+								>
+									Open PDF
+								</Button>
+							</div>
+						)}
 
-								{/* Impression Box */}
-								<div className="clinical-impression-card">
-									<div className="clinical-impression-title">Radiological Impression</div>
-									<p className="clinical-impression-text" style={{ whiteSpace: 'pre-wrap' }}>
-										{report.doctorComments || radiologyTemplate.impression}
-									</p>
+						{cleanFileUrl && !isPdfFile && (
+							<div className="radiology-film-workstation">
+								<div className="radiology-workstation-bar">
+									<span>
+										Attached Diagnostic Film: <strong>{report.fileName || report.reportTitle}</strong>
+									</span>
+									<span>Contrast: {invertContrast ? 'Inverted Bone Window' : 'Standard Radiograph'}</span>
+								</div>
+								<div className="radiology-workstation-film">
+									<img
+										src={cleanFileUrl}
+										alt={report.reportTitle || 'Patient Diagnostic Scan'}
+										className={`radiology-film-img ${invertContrast ? 'radiology-film-img--inverted' : ''}`}
+									/>
+								</div>
+								<div className="radiology-film-footer-meta">
+									<span>Patient: {patientName} ({patientUhid})</span>
+									<span>Verified Attachment</span>
 								</div>
 							</div>
 						)}
 
-						{/* =========================================================
-						    CASE B: Laboratory Pathology Parameter Table
-						   ========================================================= */}
-						{!isImaging && labResultsList && labResultsList.length > 0 && (
-							<div>
-								<div className="clinical-section-heading">Laboratory Pathology Results &amp; Analytical Values</div>
-								<table className="clinical-lab-table">
-									<thead>
-										<tr>
-											<th>Investigation / Analyte</th>
-											<th>Observed Result</th>
-											<th>Biological Reference Interval</th>
-											<th>Unit</th>
-											<th>Clinical Status</th>
+						{/* Structured Observations / Quantitative Biomarkers Table */}
+						<h4 className="clinical-section-heading">
+							{report.category === 'LAB'
+								? 'Laboratory Test Results & Reference Ranges'
+								: 'Clinical Observations & Diagnostic Findings'}
+						</h4>
+
+						{structuredFindings.length > 0 ? (
+							<table className="clinical-lab-table">
+								<thead>
+									<tr>
+										<th>Parameter / Clinical Domain</th>
+										<th>Observed Finding / Result</th>
+										<th>Reference / Expected</th>
+										<th>Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									{structuredFindings.map((row, idx) => (
+										<tr key={`${row.parameter}-${idx}`}>
+											<td className="param-name">{row.parameter}</td>
+											<td className="param-val">{row.finding}</td>
+											<td>{row.reference || '-'}</td>
+											<td>
+												<Tag color={getStatusTagColor(row.status)}>
+													{row.status || 'Normal'}
+												</Tag>
+											</td>
 										</tr>
-									</thead>
-									<tbody>
-										{labResultsList.map((row, idx) => (
-											<tr key={idx}>
-												<td className="param-name">{row.testName}</td>
-												<td className="param-val">
-													<strong className={row.flag === 'HIGH' ? 'text-danger' : row.flag === 'LOW' ? 'text-warning' : 'text-dark'}>
-														{row.resultVal}
-													</strong>
-												</td>
-												<td>{row.refRange}</td>
-												<td>{row.unit}</td>
-												<td>
-													<Tag color={row.flag === 'HIGH' ? 'error' : row.flag === 'LOW' ? 'warning' : 'success'}>
-														{row.flag}
-													</Tag>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-
-								<div className="small text-muted mb-3">
-									<strong>Methodology:</strong> Automated Multi-Channel Analytical Analyzer with internal spectrophotometric and impedance calibration.
+									))}
+								</tbody>
+							</table>
+						) : (
+							<div className="clinical-findings-grid">
+								<div className="clinical-finding-row">
+									<strong>Evaluation Summary:</strong>{' '}
+									{report.description ||
+										`Structured ${report.reportType || 'clinical'} evaluation recorded for ${patientName}.`}
 								</div>
 							</div>
 						)}
 
-						{/* Non-imaging fallback if image is uploaded without JSON results */}
-						{!isImaging && !labResultsList && report.fileUrl && (
-							<div className="text-center my-3 p-2 bg-light rounded border">
-								<img
-									src={report.fileUrl}
-									alt="Medical Document"
-									style={{ maxWidth: '100%', maxHeight: '450px', objectFit: 'contain' }}
-									className="rounded shadow-sm"
-								/>
+						{/* Physician Clinical Impression */}
+						<div className="clinical-impression-card">
+							<div className="clinical-impression-title">
+								Physician Clinical Impression & Recommendations
 							</div>
-						)}
+							<p className="clinical-impression-text">
+								{report.doctorComments ||
+									report.recordResults?.impression ||
+									'Post-consultation evaluation reviewed with patient. Continue prescribed management and advised follow-up if new symptoms arise.'}
+							</p>
+						</div>
 
-						{/* Doctor Comments & Clinical Notes */}
-						{report.doctorComments && (
-							<div className="clinical-comments-box">
-								<strong>Attending Physician Advisory Notes:</strong>
-								<p className="mb-0 mt-1">{report.doctorComments}</p>
-							</div>
-						)}
-
-						{/* Formal Sign-off Block */}
+						{/* Physician Sign-Off Block */}
 						<div className="clinical-signatures-row">
-							<div className="clinical-signature-block text-start">
-								<div className="clinical-digital-stamp">
-									<FaShieldAlt className="me-1" /> NABL Quality Checked
-								</div>
-								<p className="clinical-sign-name">Senior Medical Laboratory Technologist</p>
-								<p className="clinical-sign-title">Department Quality Assurance</p>
+							<div>
+								<span className="clinical-digital-stamp">
+									<FaCheckCircle style={{ marginRight: 5 }} />
+									Electronically Signed & Verified Post-Consultation
+								</span>
+								<p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0.25rem 0 0' }}>
+									Signed Date: {formattedDate}
+								</p>
 							</div>
-
-							<div className="clinical-signature-block text-end">
-								<div className="clinical-digital-stamp">
-									<FaCheckCircle className="me-1" /> Authenticated Digital Sign
-								</div>
-								<p className="clinical-sign-name">
-									{report.doctor ? `Dr. ${[report.doctor.firstName, report.doctor.lastName].filter(Boolean).join(' ')}` : (isImaging ? radiologyTemplate.doctorSign : 'Dr. Shweta Rao, MD (Pathology)')}
-								</p>
-								<p className="clinical-sign-title">
-									{report.doctor ? `${doctorSpec} · ${doctorReg}` : (isImaging ? radiologyTemplate.doctorReg : 'KMC Reg. No. 64281 — Chief Clinical Pathologist')}
-								</p>
+							<div className="clinical-signature-block">
+								<p className="clinical-sign-name">{doctorName}</p>
+								<p className="clinical-sign-title">{doctorCredentials}</p>
 							</div>
 						</div>
 
-						{/* Sheet Footer */}
+						{/* Footer Disclaimer */}
 						<div className="clinical-sheet-footer">
-							This is a computer-verified authentic clinical diagnostic report. Electronic authentication complies with the Information Technology Act.
-							<br />
-							&copy; 2026 {facilityName} · All medical data is protected under patient confidentiality guidelines.
+							Confidential Medical Record generated after verified consultation on MediConnect EHR · Intended strictly for clinical correlation by registered physicians and the named patient ({patientName}).
 						</div>
 					</div>
 				</div>
@@ -472,4 +470,3 @@ const ClinicalReportViewer = ({ report, open, onClose }) => {
 };
 
 export default ClinicalReportViewer;
-

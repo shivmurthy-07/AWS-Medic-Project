@@ -2,9 +2,9 @@ import { Popover } from "antd"
 import { Link, NavLink } from "react-router-dom"
 import { FaBars } from "react-icons/fa";
 import { Drawer, Button } from 'antd';
-import { FaHome, FaPhoneAlt, FaWrench, FaUserMd, FaAddressBook, FaBloggerB, FaSignInAlt } from "react-icons/fa";
+import { FaHome, FaPhoneAlt, FaWrench, FaUserMd, FaAddressBook, FaBloggerB, FaSignInAlt, FaThLarge } from "react-icons/fa";
 
-const HeaderNav = ({ open, setOpen, isLoggedIn, role, data, avatar, content, popoverTitle }) => {
+const HeaderNav = ({ open, setOpen, isLoggedIn, role, dashboardPath = '/dashboard', data, avatar, content, popoverTitle }) => {
     const showBlogLink = role !== 'doctor' && role !== 'patient';
     const showDrawer = () => {
         setOpen(true);
@@ -23,6 +23,13 @@ const HeaderNav = ({ open, setOpen, isLoggedIn, role, data, avatar, content, pop
                     <li><NavLink to={'/doctors'} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}>Doctors</NavLink></li>
                     <li><NavLink to={'/contact'} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}>Contact</NavLink></li>
                     {showBlogLink && <li><NavLink to={'/blog'} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}>Blog</NavLink></li>}
+                    {isLoggedIn && (
+                        <li>
+                            <NavLink to={dashboardPath} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}>
+                                Dashboard
+                            </NavLink>
+                        </li>
+                    )}
                     {!isLoggedIn && <li><Link to={'/login'} className="nav-link scrollto">Login</Link></li>}
                 </ul>
                 {isLoggedIn && (
@@ -61,8 +68,15 @@ const HeaderNav = ({ open, setOpen, isLoggedIn, role, data, avatar, content, pop
                     <li><NavLink to={'/service'} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}><FaWrench className="icon" />Service</NavLink></li>
                     <li><NavLink to={'/doctors'} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}><FaUserMd className="icon" />Doctors</NavLink></li>
                     <li><NavLink to={'/contact'} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}><FaPhoneAlt className="icon" />Contact</NavLink></li>
-                    {showBlogLink && <li><NavLink to={'/blog'} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}><FaBloggerB className="icon" />Blog</NavLink></li>}
-                    {!isLoggedIn && <li><Link to={'/login'} className="nav-link scrollto"><FaSignInAlt className="icon" />Login</Link></li>}
+                    {showBlogLink && <li><NavLink to={'/blog'} onClick={onClose} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}><FaBloggerB className="icon" />Blog</NavLink></li>}
+                    {isLoggedIn && (
+                        <li>
+                            <NavLink to={dashboardPath} onClick={onClose} className={({ isActive }) => isActive ? "nav-link scrollto active" : ""}>
+                                <FaThLarge className="icon" />Dashboard
+                            </NavLink>
+                        </li>
+                    )}
+                    {!isLoggedIn && <li><Link to={'/login'} onClick={onClose} className="nav-link scrollto"><FaSignInAlt className="icon" />Login</Link></li>}
                 </ul>
             </Drawer>
         </>

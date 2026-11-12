@@ -6,14 +6,14 @@ const appointmentStatus = z.enum([
 ]);
 const patientStatus = z.enum([
     'Stable', 'Critical', 'Serious', 'Guarded', 'Unstable', 'Recovering',
-    'Critical but Stable', 'Comfort Measures Only (CMO)', 'Acute', 'Chronic',
+    'Critical but Stable', 'Comfort Measures Only (CMO)', 'Acute', 'Chronic', 'Outpatient', 'Inpatient',
 ]);
 const optionalDate = z.string().trim().optional().refine(
     (value) => value === undefined || value === '' || moment(value, moment.ISO_8601, true).isValid(),
     'Enter a valid follow-up date'
 ).refine(
-    (value) => value === undefined || value === '' || moment(value).isAfter(moment()),
-    'Follow-up date must be in the future'
+    (value) => value === undefined || value === '' || moment(value).isSameOrAfter(moment().startOf('day')),
+    'Follow-up date cannot be in the past'
 ).transform((value) => value === '' ? undefined : value);
 
 const medicineInputSchema = z.object({
