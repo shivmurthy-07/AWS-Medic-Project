@@ -80,11 +80,22 @@ const replyReviewByDoctor = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const getPatientReviews = catchAsync(async (req: Request, res: Response) => {
+    const result = await ReviewService.getPatientReviews(req.user);
+    sendResponse<Reviews[]>(res, {
+        statusCode: 200,
+        message: 'Successfully Retrieve review !!',
+        success: true,
+        data: result,
+    });
+});
+
 export const ReviewController = {
     creatReview,
     updateReview,
     getAllReview,
     getDoctorReviews,
+    getPatientReviews,
     deleteReview,
     getSingleReview,
     replyReviewByDoctor

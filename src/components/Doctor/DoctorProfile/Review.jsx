@@ -89,7 +89,7 @@ const Review = ({ doctorId }) => {
 					<div className="review-card__rating-block">
 						<div className="review-card__stars">
 							<StarRatings
-								rating={5}
+								rating={Number(item?.star) || 0}
 								starRatedColor="#f4c150"
 								numberOfStars={5}
 								name="rating"
@@ -97,7 +97,7 @@ const Review = ({ doctorId }) => {
 								starSpacing="2px"
 							/>
 						</div>
-						<span className="review-card__rating-text">5.0</span>
+						<span className="review-card__rating-text">{(Number(item?.star) || 0).toFixed(1)}</span>
 					</div>
 				</div>
 				<div className="review-card__body">

@@ -14,6 +14,7 @@ import {
     FaFilePrescription,
     FaFileMedical,
     FaPlus,
+    FaStar,
 } from 'react-icons/fa';
 import {
     useGetDoctorAppointmentsQuery,
@@ -702,6 +703,13 @@ const PatientAppointmentsTable = () => {
                         <Link to={`/dashboard/prescription/${record.prescription[0].id}`}>
                             <Button size="small" type="default" icon={<FaFilePrescription />}>
                                 Prescription
+                            </Button>
+                        </Link>
+                    )}
+                    {record.doctorId && record.status === 'Completed' && (
+                        <Link to={`/dashboard/reviews?doctorId=${record.doctorId}`}>
+                            <Button size="small" type="default" icon={<FaStar />}>
+                                Give Review
                             </Button>
                         </Link>
                     )}

@@ -65,6 +65,7 @@ const DashboardSidebar = () => {
         { path: '/dashboard/lab-reports', icon: <FaVial />, label: 'Laboratory Reports' },
         { path: '/dashboard/prescription', icon: <FaPills />, label: 'Prescriptions' },
         { path: '/dashboard/invoices', icon: <FaFileInvoiceDollar />, label: 'Payment History' },
+        { path: '/dashboard/reviews', icon: <FaStar />, label: 'Reviews' },
     ];
 
     const menuItems = role === 'doctor' ? doctorMenuItems : patientMenuItems;
@@ -114,7 +115,7 @@ const DashboardSidebar = () => {
                     <li>
                         <NavLink to={role === 'doctor' ? "/dashboard/profile-setting" : "/dashboard/my-profile"}>
                             <span className="icon">{role === 'doctor' ? <FaUserCog /> : <FaUserInjured />}</span>
-                            <span>{role === 'doctor' ? "Doctor Profile Settings" : "My Patient Profile"}</span>
+                            <span>{role === 'doctor' ? "Doctor Profile Settings" : "My Profile"}</span>
                         </NavLink>
                     </li>
                     <li>

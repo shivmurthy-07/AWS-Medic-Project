@@ -27,6 +27,13 @@ export const reviewApi = baseApi.injectEndpoints({
             }),
             providesTags: [tagTypes.reviews]
         }),
+        getPatientReviews: build.query({
+            query: () => ({
+                url: `${REVIEW_URL}/patient-reviews`,
+                method: 'GET'
+            }),
+            providesTags: [tagTypes.reviews]
+        }),
         replyReviews: build.query({
             query: ({id, data}) => ({
                 url: `${REVIEW_URL}/${id}/reply`,
@@ -66,6 +73,7 @@ export const {
     useDeleteReviewQuery,
     useGetAllReviewsQuery,
     useGetDoctorReviewsQuery,
+    useGetPatientReviewsQuery,
     useGetSingleReviewQuery,
     useUpdateReviewQuery,
     useReplyReviewsQuery,

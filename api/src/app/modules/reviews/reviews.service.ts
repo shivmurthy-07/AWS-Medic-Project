@@ -173,11 +173,37 @@ const replyReviewByDoctor = async (user: any, id: string, payload: Partial<Revie
     return result;
 }
 
+const getPatientReviews = async (user: any): Promise<Reviews[]> => {
+    const patient = await prisma.patient.findUnique({
+        where: { id: user.userId },
+        select: { id: true },
+    });
+    if (!patient) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Patient Account is not found !!');
+    }
+    return prisma.reviews.findMany({
+        where: { patientId: patient.id },
+        include: {
+            doctor: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    img: true,
+                    specialization: true,
+                    designation: true,
+                },
+            },
+        },
+        orderBy: { createdAt: 'desc' },
+    });
+};
 
 export const ReviewService = {
     create,
     getAllReviews,
     getDoctorReviews,
+    getPatientReviews,
     deleteReviews,
     updateReview,
     getSingleReview,

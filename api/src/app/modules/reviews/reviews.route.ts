@@ -4,6 +4,7 @@ import { auth } from '../../middlewares/auth';
 import { AuthUser } from '../../../enums';
 
 const router = express.Router();
+router.get('/patient-reviews', auth(AuthUser.PATIENT), ReviewController.getPatientReviews);
 router.get('/doctor-review/:id', auth(AuthUser.DOCTOR, AuthUser.PATIENT), ReviewController.getDoctorReviews);
 router.get('/:id', ReviewController.getSingleReview);
 router.post('/', auth(AuthUser.PATIENT), ReviewController.creatReview);
