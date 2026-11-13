@@ -57,7 +57,6 @@ const DashboardSidebar = () => {
 
     const patientMenuItems = [
         { path: '/dashboard', icon: <FaTable />, label: 'Dashboard', exact: true },
-        { path: '/dashboard/my-profile', icon: <FaUserInjured />, label: 'My Profile' },
         { path: '/doctors', icon: <FaSearch />, label: 'Find Doctors' },
         { path: '/dashboard/appointments', icon: <FaCalendarCheck />, label: 'My Appointments' },
         { path: '/dashboard/medical-records', icon: <FaNotesMedical />, label: 'Medical Records' },
